@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Surat Orderan - CV. SINAR ILMU JAYA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; padding-bottom: 70px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 10px; z-index: 50; }
+        .nav-btn { flex: 1; text-align: center; font-size: 10px; color: #9ca3af; }
+        .nav-btn.active { color: #1e3a8a; font-weight: bold; }
+        .nav-btn i { display: block; font-size: 20px; margin-bottom: 2px; }
+
+        .nota-wrapper { background: white; width: 210mm; min-height: 297mm; padding: 10mm 12mm; box-sizing: border-box; color: black; font-family: sans-serif; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); flex-shrink: 0; }
+        .preview-scaler { width: 100%; overflow-x: auto; display: flex; flex-direction: column; align-items: center; gap: 18px; background: #525659; padding: 20px 10px; }
+
+        .nota-table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 10px; }
+        .nota-table th { background: #1e3a8a; color: white; border: 1px solid #1e3a8a; padding: 7px 6px; font-size: 9pt; font-weight: bold; text-align: center; text-transform: uppercase; }
+        .nota-table td { border: 1px solid #1e3a8a; padding: 7px 6px; font-size: 10pt; vertical-align: top; }
+        .nota-table tfoot td { border: 1px solid #1e3a8a; font-weight: bold; }
+
+        .header-title { font-size: 15pt; font-weight: 900; color: #1e3a8a; line-height: 1.2; letter-spacing: -0.2px; font-family: 'Times New Roman', serif; white-space: nowrap; }
+        .header-sub { font-size: 10pt; font-weight: bold; color: #b91c1c; }
+        .header-small { font-size: 9pt; color: #b91c1c; }
+
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            body { background: white; padding: 0; margin: 0; }
+            .no-print, .bottom-nav { display: none !important; }
+            .preview-scaler { display: block; background: white; padding: 0; }
+            .nota-wrapper { width: 210mm !important; min-height: 297mm !important; margin: 0 !important; box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+        @media (min-width: 1024px) {
+            body { padding-bottom: 0; display: flex; height: 100vh; overflow: hidden; }
+            .bottom-nav { display: none; }
+            #tab-input { width: 400px; height: 100%; overflow-y: auto; border-right: 1px solid #ccc; }
+            #tab-preview { flex: 1; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; background: #525659; padding: 40px; gap: 20px; }
+            .tab-content { display: block !important; }
+            .preview-scaler { background: transparent; padding: 0; display: flex; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- === TAB 1: INPUT DATA === -->
+    <div id="tab-input" class="tab-content active bg-white h-full pb-20 lg:pb-0">
+        <div class="p-4 sticky top-0 z-10 shadow-md flex justify-between items-center text-white" style="background:#1e3a8a;">
+            <h1 class="font-bold text-lg"><i class="fa-solid fa-file-signature"></i> Input Surat Orderan</h1>
+            <button onclick="resetAll()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded">Reset</button>
+        </div>
+
+        <div class="p-4 space-y-4">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3">
+                <div class="flex gap-2">
+                    <div class="w-1/2">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">No. Orderan</label>
+                        <input type="text" id="ordNo" class="w-full p-2 border border-gray-300 rounded text-sm bg-gray-100 font-mono" readonly>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Tanggal</label>
+                        <input type="date" id="ordDate" class="w-full p-2 border border-gray-300 rounded text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Kepada</label>
+                    <textarea id="ordCust" rows="2" class="w-full p-2 border border-gray-300 rounded text-sm placeholder-gray-400" placeholder="Nama Pelanggan..."></textarea>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Paket Pesanan / Deskripsi Pekerjaan</label>
+                    <textarea id="ordDesk" rows="2" class="w-full p-2 border border-gray-300 rounded text-sm placeholder-gray-400" placeholder="Contoh: Pengadaan cetak brosur promosi..."></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <div class="w-1/2">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Waktu Pengerjaan</label>
+                        <input type="text" id="ordKerja" class="w-full p-2 border border-gray-300 rounded text-sm" placeholder="Contoh: 3 Hari">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Waktu Pengiriman</label>
+                        <input type="text" id="ordKirim" class="w-full p-2 border border-gray-300 rounded text-sm" placeholder="Contoh: 1 Hari">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-bold" style="color:#1e3a8a;">Tambah Item Pekerjaan</h3>
+                    <span id="editBadge" class="hidden text-[10px] bg-orange-500 text-white px-2 rounded animate-pulse">Sedang Edit</span>
+                </div>
+                <input type="hidden" id="editIdx" value="-1">
+                <input type="text" id="itemName" class="w-full mb-2 p-2 border border-gray-300 rounded text-sm outline-none" placeholder="Uraian Barang/Jasa...">
+                <div class="flex gap-2 mb-2">
+                    <input type="number" id="itemQty" class="w-16 p-2 border border-gray-300 rounded text-sm text-center" placeholder="Qty" value="1">
+                    <input type="text" id="itemSatuan" class="w-20 p-2 border border-gray-300 rounded text-sm text-center" placeholder="Satuan">
+                    <input type="number" id="itemPrice" class="flex-1 p-2 border border-gray-300 rounded text-sm text-right" placeholder="Harga Satuan">
+                </div>
+                <div class="flex gap-2">
+                    <button id="btnAdd" onclick="addItem()" class="flex-1 text-white py-2 rounded font-bold shadow active:scale-95 transition" style="background:#1e3a8a;">
+                        <i class="fa-solid fa-plus"></i> Tambah
+                    </button>
+                    <button id="btnCancel" onclick="cancelEdit()" class="hidden w-20 bg-gray-400 text-white py-2 rounded font-bold">Batal</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between text-xs font-bold text-gray-500 mb-2 uppercase">
+                    <span>Daftar Item</span>
+                    <span id="itemCount">0 Item</span>
+                </div>
+                <div id="miniList" class="space-y-2 pb-10"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === TAB 2: PREVIEW === -->
+    <div id="tab-preview" class="tab-content h-full">
+        <div class="preview-scaler">
+            <div class="nota-wrapper" id="printArea">
+
+                <div class="flex justify-between items-start mb-2">
+                    <div style="width: 74%; display:flex; gap:8px; align-items:flex-start;">
+                        <div id="logoSlot" style="flex-shrink:0; margin-top:2px;"></div>
+                        <div style="min-width:0;">
+                            <div class="header-title">CV. SINAR ILMU JAYA</div>
+                            <div class="header-sub">Percetakan - Digital Printing - Souvenir</div>
+                            <div class="header-small mt-1">Jl. Kapas Tengah II Blok F No.721 / 0822 30563792</div>
+                        </div>
+                    </div>
+                    <div style="width: 26%; text-align: right; flex-shrink:0;">
+                        <div style="font-size: 8pt; color: #555;">KEPADA</div>
+                        <div id="dispCust" class="font-bold text-black" style="font-size: 9.5pt; min-height: 18px;">-</div>
+                    </div>
+                </div>
+
+                <div class="w-full" style="height:2px; background:#1e3a8a; margin: 6px 0 8px;"></div>
+
+                <div class="flex items-end justify-between mb-2">
+                    <div class="flex items-end">
+                        <span style="background: #1e3a8a; color: white; padding: 2px 8px; font-weight: bold; font-size: 9pt; border-radius: 2px;">SURAT ORDERAN</span>
+                        <span id="dispNo" style="font-weight: bold; font-size: 10.5pt; margin-left: 8px; font-family: monospace;">-</span>
+                    </div>
+                    <div style="text-align:right; font-size: 9pt;">
+                        <span style="color:#555;">Tanggal:</span> <span id="dispDate" class="font-bold">-</span>
+                    </div>
+                </div>
+
+                <div style="font-size: 9.5pt; margin-bottom: 6px;">
+                    <b>Paket Pesanan:</b> <span id="dispDesk">-</span>
+                </div>
+                <div style="font-size: 9.5pt; margin-bottom: 8px;">
+                    <b>Waktu Pengerjaan:</b> <span id="dispKerja">-</span> &nbsp;&nbsp;|&nbsp;&nbsp; <b>Waktu Pengiriman:</b> <span id="dispKirim">-</span>
+                </div>
+
+                <table class="nota-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 26px;">NO</th>
+                            <th style="text-align: left;">URAIAN BARANG/JASA</th>
+                            <th style="width: 50px;">QTY</th>
+                            <th style="width: 60px;">SATUAN</th>
+                            <th style="width: 100px;">HARGA SATUAN</th>
+                            <th style="width: 120px;">TOTAL HARGA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dispTableBody"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" style="text-align: right;">TOTAL</td>
+                            <td id="dispTotal" style="text-align: right; font-size: 11pt; white-space: nowrap;">Rp 0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div style="font-size: 8.5pt;">
+                    <b>Terbilang :</b> <span id="dispTerbilang" style="font-style: italic;">Nol Rupiah</span>
+                </div>
+
+                <div class="flex justify-end mt-10" style="font-size: 9pt;">
+                    <div style="text-align: center; width: 220px;">
+                        <div style="margin-bottom: 4px;">Semarang, <span id="dispDate2">-</span></div>
+                        <div style="margin-bottom: 4px;">Penyedia,</div>
+                        <div style="height: 60px;"></div>
+                        <div style="border-top: 1px solid #333; padding-top: 4px; font-weight: bold;">CV. SINAR ILMU JAYA</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="fixed bottom-20 right-5 lg:hidden no-print">
+            <button onclick="window.print()" class="bg-gray-900 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center animate-bounce">
+                <i class="fa-solid fa-print text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav lg:hidden no-print">
+        <button onclick="switchTab('input')" class="nav-btn active" id="nav-input"><i class="fa-solid fa-pen-to-square"></i> Input</button>
+        <button onclick="switchTab('preview')" class="nav-btn" id="nav-preview"><i class="fa-solid fa-file-signature"></i> Orderan</button>
+    </nav>
+
+    <script>
+        const LOGO_IMG = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKoAAADMCAYAAADj2zjFAAADcElEQVR42u3dW1KDQBRFUZpi/lNuv6yKFtFgAO9jrREYsj1NNNEx51wgui3DFznG8vS7ac5leBrrG9EX9adIjxC0UMNHKmahlolUzEItE2nFYCNc61eu5ebCNV2oQNf58Wt5Fu3q4vmGymD1xFvTDF/b6sJhUQvz6r9ZqNaU8KFmjdSaOvpFSqxQM66pSJuFKlLChypS3KOKVKgd11SkDUMVKeFDFSnuUUUq1G5rKlKLKlLihpplTUUay143q0hF6uiHyKFaU8KHKlIc/SIVapc1FalQLSnxQ/UhPcKH6sjH0S9SzgjVkY9FtaacEWr0NRWpUCFHqNYUiypSzgg18pqKVKiQJ1Rryn/YqjyQ0yIdYxa5IKW+addjz2Hx30JVibTaY6lyj3rKmhZ7Yqs9Ji+mqBWq/02KRYUzQrWmWFSoHKo1FWr4Y1+kQoV8oVpTLCpUDdWa9vH9NF8zHftYVBCqY59LQnXsY1GtKe5RESpECjXa/aljH4uKUKFNqI59dkP181MsKlQM1bGPRUWocGmoXkhhUaFiqF5IYVERKggVoXrFj0UFoSJUECoIFaGCUEGoCBWESl+PvzEVKhYVSofqTTJYVIQKQkWo7lMRKggVoTr+iRaqP/iwLMucw2OyqFaVt2wuwc4CjTFLPA6h3r+qt96eVLwNcPSDUN2r8jVUr/yxqFaVbveoYhUq5Ag1y32qVbWobgEQqlhxj0qvULP9PNWqWlSxIlSx8naoWX+dKlaLmipWwdYz5pxlF8rJkN/nc1j6x1MZn3CR/uHor/DWP0+8e1T3rb6pbrsmv4Za6Q3VQrCoYkWoXW8FOBhq1c9TCbbgolb+8J9YHf3WlftD7fCRasEWWdQun/8XrKNfsNwTase/qiJYiwrXhdr1b1VZ1YSL6g+rkeboFytp7lHFihdTcGaoVpU0iypW0hz9YiXNPapYSfNiSqykedUvVlKEKlbShCpW0oQqVtKEKlbShPoZq2AJH6p1JVWoYiVNqGLlVZtLcJyPozRcVHhlGISKRQWhIlQQ6g4/osKiIlQQKggVoYJQESoIFYSKUEGoIFSEeglvTMGiIlQQKggVoYJQESoIFYSKUEGoIFSECn1D9Q4qLCpCBaGCUBEqCBWhglBBqAgVhApCRaiX8MYU9pqwqFhUq8pZLYw5p6tBeB82ejyeGyQUXAAAAABJRU5ErkJggg==" style="width:42px;height:auto;display:block;" alt="Logo CV Sinar Ilmu Jaya">';
+        document.getElementById('logoSlot').innerHTML = LOGO_IMG;
+
+        let items = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStorage();
+            if(!document.getElementById('ordNo').value) newOrdNo();
+            if(!document.getElementById('ordDate').value) document.getElementById('ordDate').valueAsDate = new Date();
+            updateUI();
+            ['ordNo','ordDate','ordCust','ordDesk','ordKerja','ordKirim'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => { updateUI(); saveStorage(); });
+            });
+        });
+
+        function switchTab(t) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
+            document.getElementById('tab-'+t).classList.add('active');
+            document.getElementById('nav-'+t).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        function addItem() {
+            const name = document.getElementById('itemName').value;
+            const qty = parseFloat(document.getElementById('itemQty').value) || 0;
+            const satuan = document.getElementById('itemSatuan').value;
+            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+            const idx = parseInt(document.getElementById('editIdx').value);
+            if(!name) return alert("Isi uraian barang/jasa!");
+            const item = {name, qty, satuan, price, total: qty*price};
+            if(idx === -1) items.push(item);
+            else { items[idx] = item; cancelEdit(); }
+            if(idx === -1) {
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemQty').value = '1';
+                document.getElementById('itemSatuan').value = '';
+                document.getElementById('itemPrice').value = '';
+                document.getElementById('itemName').focus();
+            }
+            updateUI(); saveStorage();
+        }
+
+        function editItem(i) {
+            if(window.innerWidth < 1024) switchTab('input');
+            const d = items[i];
+            document.getElementById('itemName').value = d.name;
+            document.getElementById('itemQty').value = d.qty;
+            document.getElementById('itemSatuan').value = d.satuan;
+            document.getElementById('itemPrice').value = d.price;
+            document.getElementById('editIdx').value = i;
+            document.getElementById('btnAdd').innerHTML = '<i class="fa-solid fa-check"></i> Simpan';
+            document.getElementById('btnAdd').className = "flex-1 bg-orange-500 text-white py-2 rounded font-bold shadow";
+            document.getElementById('btnCancel').classList.remove('hidden');
+            document.getElementById('editBadge').classList.remove('hidden');
+        }
+
+        function cancelEdit() {
+            document.getElementById('editIdx').value = '-1';
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '1';
+            document.getElementById('itemSatuan').value = '';
+            document.getElementById('itemPrice').value = '';
+            document.getElementById('btnAdd').innerHTML = '<i class="fa-solid fa-plus"></i> Tambah';
+            document.getElementById('btnAdd').className = "flex-1 text-white py-2 rounded font-bold shadow active:scale-95 transition";
+            document.getElementById('btnAdd').style.background = '#1e3a8a';
+            document.getElementById('btnCancel').classList.add('hidden');
+            document.getElementById('editBadge').classList.add('hidden');
+        }
+
+        function delItem(i) {
+            if(confirm('Hapus item?')) {
+                items.splice(i, 1);
+                if(parseInt(document.getElementById('editIdx').value) === i) cancelEdit();
+                updateUI(); saveStorage();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('dispNo').innerText = document.getElementById('ordNo').value;
+            const d = document.getElementById('ordDate').value;
+            const dispDateStr = fmtDateShort(d);
+            document.getElementById('dispDate').innerText = dispDateStr;
+            document.getElementById('dispDate2').innerText = dispDateStr;
+            const custName = document.getElementById('ordCust').value || '-';
+            document.getElementById('dispCust').innerText = custName;
+            document.getElementById('dispDesk').innerText = document.getElementById('ordDesk').value || '-';
+            document.getElementById('dispKerja').innerText = document.getElementById('ordKerja').value || '-';
+            document.getElementById('dispKirim').innerText = document.getElementById('ordKirim').value || '-';
+
+            const tb = document.getElementById('dispTableBody');
+            tb.innerHTML = '';
+            let grandTotal = 0;
+            const ml = document.getElementById('miniList');
+            ml.innerHTML = '';
+
+            items.forEach((item, i) => {
+                grandTotal += item.total;
+                tb.innerHTML += `
+                    <tr>
+                        <td style="text-align: center;">${i+1}</td>
+                        <td>${item.name}</td>
+                        <td style="text-align: center;">${item.qty}</td>
+                        <td style="text-align: center;">${item.satuan||''}</td>
+                        <td style="text-align: right; white-space: nowrap;">${fmt(item.price)}</td>
+                        <td style="text-align: right; white-space: nowrap;">${fmt(item.total)}</td>
+                    </tr>`;
+                ml.innerHTML += `
+                    <div class="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-xs shadow-sm">
+                        <div class="flex-1 truncate pr-2">
+                            <div class="font-bold text-gray-700">${item.name}</div>
+                            <div class="text-gray-500">${item.qty} ${item.satuan||''} x ${fmt(item.price)}</div>
+                        </div>
+                        <div class="font-bold text-gray-800 mr-3">${fmt(item.total)}</div>
+                        <div class="flex gap-2">
+                            <button onclick="editItem(${i})" class="text-orange-500 p-1"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="delItem(${i})" class="text-red-500 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>`;
+            });
+
+            if(items.length < 5) {
+                for(let k=0; k<(5-items.length); k++) {
+                    tb.innerHTML += `<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>`;
+                }
+            }
+
+            document.getElementById('dispTotal').innerText = 'Rp ' + fmt(grandTotal);
+            let textTerbilang = terbilang(grandTotal);
+            textTerbilang = textTerbilang.charAt(0).toUpperCase() + textTerbilang.slice(1);
+            document.getElementById('dispTerbilang').innerText = textTerbilang + " Rupiah";
+            document.getElementById('itemCount').innerText = items.length + " Item";
+        }
+
+        function resetAll() {
+            if(confirm("Buat Surat Orderan baru?")) {
+                items = [];
+                document.getElementById('ordCust').value = '';
+                document.getElementById('ordDesk').value = '';
+                document.getElementById('ordKerja').value = '';
+                document.getElementById('ordKirim').value = '';
+                newOrdNo();
+                cancelEdit();
+                updateUI(); saveStorage();
+            }
+        }
+
+        function newOrdNo() {
+            const d = new Date();
+            const dd = String(d.getDate()).padStart(2,'0');
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const yy = String(d.getFullYear()).slice(-2);
+            const uniq = Math.floor(10 + Math.random()*90);
+            document.getElementById('ordNo').value = dd + '/' + mm + '/' + yy + '/' + uniq;
+        }
+
+        function fmtDateShort(dateStr) {
+            if(!dateStr) return '-';
+            const d = new Date(dateStr);
+            const dd = String(d.getDate()).padStart(2,'0');
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            const yy = String(d.getFullYear()).slice(-2);
+            return dd + '/' + mm + '/' + yy;
+        }
+
+        function fmt(n) { return new Intl.NumberFormat('id-ID').format(n); }
+
+        function terbilang(a){
+            var bilangan = ['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas'];
+            var temp = '';
+            if(a<12) temp=' '+bilangan[a];
+            else if(a<20) temp=terbilang(a-10)+' belas';
+            else if(a<100) temp=terbilang(Math.floor(a/10))+' puluh'+terbilang(a%10);
+            else if(a<200) temp=' seratus'+terbilang(a-100);
+            else if(a<1000) temp=terbilang(Math.floor(a/100))+' ratus'+terbilang(a%100);
+            else if(a<2000) temp=' seribu'+terbilang(a-1000);
+            else if(a<1000000) temp=terbilang(Math.floor(a/1000))+' ribu'+terbilang(a%1000);
+            else if(a<1000000000) temp=terbilang(Math.floor(a/1000000))+' juta'+terbilang(a%1000000);
+            return temp.trim();
+        }
+
+        function saveStorage() {
+            localStorage.setItem('eOrderanSija', JSON.stringify({
+                items,
+                no: document.getElementById('ordNo').value,
+                date: document.getElementById('ordDate').value,
+                cust: document.getElementById('ordCust').value,
+                desk: document.getElementById('ordDesk').value,
+                kerja: document.getElementById('ordKerja').value,
+                kirim: document.getElementById('ordKirim').value
+            }));
+        }
+        function loadStorage() {
+            const d = JSON.parse(localStorage.getItem('eOrderanSija'));
+            if(d) {
+                items = d.items || [];
+                document.getElementById('ordNo').value = d.no || '';
+                document.getElementById('ordDate').value = d.date || '';
+                document.getElementById('ordCust').value = d.cust || '';
+                document.getElementById('ordDesk').value = d.desk || '';
+                document.getElementById('ordKerja').value = d.kerja || '';
+                document.getElementById('ordKirim').value = d.kirim || '';
+            }
+        }
+    </script>
+</body>
+</html>

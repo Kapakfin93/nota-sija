@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body { background: white; padding: 0; margin: 0; }
+  .no-print, .bottom-nav { display: none !important; }
+  .nota-wrapper {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

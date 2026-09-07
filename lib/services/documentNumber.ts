@@ -18,3 +18,28 @@ export function formatTanggalPendek(tanggal: Date): string {
   const yy = String(tanggal.getFullYear()).slice(-2);
   return `${dd}/${mm}/${yy}`;
 }
+
+/**
+ * Format nama file PDF saat download/cetak.
+ * Contoh output: sija-unimus-07-09-26-65
+ * Menghilangkan karakter ilegal file system (/ \ : * ? " < > |)
+ */
+export function formatPdfFileName(options: {
+  customLabel?: string;
+  noDokumen: string;
+  prefix?: string;
+}): string {
+  const prefix = options.prefix || "sija";
+
+  // 1. Sanitasi label penyesuaian: buang karakter ilegal sistem file
+  const rawLabel = options.customLabel?.trim() || "nota";
+  const cleanLabel = rawLabel
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-_]/gi, "")
+    .replace(/\s+/g, "-") || "nota";
+
+  // 2. Sanitasi nomor dokumen: ubah '/' menjadi '-'
+  const cleanNo = options.noDokumen.replace(/\//g, "-");
+
+  return `${prefix}-${cleanLabel}-${cleanNo}`;
+}
