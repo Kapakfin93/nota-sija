@@ -135,6 +135,24 @@ export default function NotaPage() {
 
   const formatRp = (n: number) => n.toLocaleString("id-ID");
 
+  // Nama file PDF dinamis: sija-[label]-[nomor]. Digunakan untuk <title> dan "Save as PDF"
+  const dynamicFileName = formatPdfFileName({
+    customLabel: fileLabel || namaCustomer,
+    noDokumen: noDokumen || "draft",
+  });
+
+  // Sinkronisasi document.title dan listener sebelum dialog print dipicu
+  useEffect(() => {
+    if (noDokumen) {
+      document.title = dynamicFileName;
+    }
+    const onBeforePrint = () => {
+      document.title = dynamicFileName;
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    return () => window.removeEventListener("beforeprint", onBeforePrint);
+  }, [dynamicFileName, noDokumen]);
+
   // ─── Reset Nota Baru ──────────────────────────────────────────────────────
   const resetAll = () => {
     if (!confirm("Buat nota baru? Semua data saat ini akan dihapus.")) return;
@@ -290,6 +308,7 @@ export default function NotaPage() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden flex-col lg:flex-row">
+      <title>{dynamicFileName}</title>
 
       {/* ================================================================ */}
       {/* TAB 1: INPUT                                                      */}

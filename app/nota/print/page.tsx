@@ -52,22 +52,34 @@ export default function NotaPrintPage() {
     }
   }, []);
 
+  const dynamicFileName = data
+    ? formatPdfFileName({
+        customLabel: data.fileLabel || data.cust,
+        noDokumen: data.no || "draft",
+      })
+    : "sija-nota";
+
   // Update document.title dinamis & auto-trigger dialog print
   useEffect(() => {
     if (isReady && data) {
-      // Generate nama file default untuk browser saat "Save as PDF": (sija)-(label)-(no_nota)
-      const dynamicFileName = formatPdfFileName({
-        customLabel: data.fileLabel || data.cust,
-        noDokumen: data.no || "draft",
-      });
       document.title = dynamicFileName;
+
+      // Event listener sebelum dialog browser print terbuka
+      const onBeforePrint = () => {
+        document.title = dynamicFileName;
+      };
+      window.addEventListener("beforeprint", onBeforePrint);
 
       const timer = setTimeout(() => {
         window.print();
       }, 400);
-      return () => clearTimeout(timer);
+
+      return () => {
+        window.removeEventListener("beforeprint", onBeforePrint);
+        clearTimeout(timer);
+      };
     }
-  }, [isReady, data]);
+  }, [isReady, data, dynamicFileName]);
 
   if (!isReady) {
     return (
@@ -103,6 +115,7 @@ export default function NotaPrintPage() {
 
   return (
     <div className="min-h-screen bg-[#525659] py-0 lg:py-8 flex flex-col items-center">
+      <title>{dynamicFileName}</title>
       {/* ── BAR KONTROL (HANYA TAMPIL DI LAYAR, OTOMATIS DISSEMBUNYIKAN SAAT PRINT) ── */}
       <div className="no-print w-full max-w-[210mm] mb-4 px-3 flex items-center justify-between text-white text-sm">
         <button
@@ -232,7 +245,7 @@ export default function NotaPrintPage() {
                     alt="Logo"
                     width={42}
                     height={42}
-                    className="w-[42px] h-auto object-contain"
+                    style={{ width: "42px", height: "auto" }}
                     priority
                   />
                 </div>
@@ -376,7 +389,7 @@ export default function NotaPrintPage() {
                       alt="Logo"
                       width={42}
                       height={42}
-                      className="w-[42px] h-auto object-contain"
+                      style={{ width: "42px", height: "auto" }}
                     />
                   </div>
                   <div>
@@ -449,7 +462,7 @@ export default function NotaPrintPage() {
                       alt="Logo"
                       width={42}
                       height={42}
-                      className="w-[42px] h-auto object-contain"
+                      style={{ width: "42px", height: "auto" }}
                     />
                   </div>
                   <div style={{ minWidth: 0 }}>
