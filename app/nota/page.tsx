@@ -614,21 +614,22 @@ export default function NotaPage() {
           @media (max-width: 1023px) {
             .fit-screen-container {
               width: 100%;
+              overflow: hidden;
               display: flex;
               justify-content: center;
-              overflow: hidden;
+              padding: 8px 0;
             }
-            .fit-screen-container .nota-wrapper {
-              transform: scale(calc((100vw - 24px) / 794));
+            .fit-screen-wrapper {
+              transform: scale(calc((100vw - 20px) / 794));
               transform-origin: top center;
-              margin-bottom: calc(-1 * (1123px - (1123px * (100vw - 24px) / 794)));
+              margin-bottom: calc(-1 * (1123px - (1123px * (100vw - 20px) / 794)));
             }
           }
         `}</style>
 
         {/* Mobile Action Bar di atas Preview */}
         <div className="flex lg:hidden w-full px-3 py-2 bg-gray-900/90 backdrop-blur text-white justify-between items-center text-xs sticky top-0 z-20 shadow">
-          <span className="text-gray-300 font-mono text-[11px] truncate max-w-[150px]">
+          <span className="text-gray-300 font-mono text-[11px] truncate max-w-[140px]">
             {noDokumen || "Nota"}
           </span>
           <div className="flex items-center gap-2">
@@ -637,7 +638,7 @@ export default function NotaPage() {
               className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-[11px] font-medium flex items-center gap-1 active:scale-95 transition"
             >
               <i className={`fa-solid ${fitToScreen ? "fa-arrows-left-right" : "fa-compress"}`} />
-              {fitToScreen ? "100%" : "Fit Layar"}
+              {fitToScreen ? "Skala Asli" : "Fit Layar"}
             </button>
             <button
               onClick={handlePrint}
@@ -662,7 +663,7 @@ export default function NotaPage() {
         </div>
 
         <div className={`w-full ${fitToScreen ? "fit-screen-container" : "overflow-x-auto flex justify-start sm:justify-center p-2"} pb-24 lg:pb-0`}>
-          <div className="nota-wrapper">
+          <div className={`nota-wrapper ${fitToScreen ? "fit-screen-wrapper" : ""}`}>
 
             {/* ─────────────── NOTA UTAMA ─────────────── */}
             <div className="doc-half">
