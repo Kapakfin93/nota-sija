@@ -18,11 +18,21 @@ export class OrderanService {
     waktuPengiriman: string;
     items: Transaksi["items"];
   }): Promise<Transaksi> {
+    const noDokumen = input.noDokumen || generateNoDokumen();
+    const existing = await this.repo.ambilTransaksi(noDokumen);
+
+    // Proteksi status: jika dokumen sudah pernah ditarik ke Nota (tertagih)
+    // atau sudah lunas, cetak ulang dari halaman Orderan TIDAK boleh memundurkan status ke "berjalan".
+    const status: Transaksi["status"] =
+      existing?.status && existing.status !== "berjalan"
+        ? existing.status
+        : "berjalan";
+
     const total = input.items.reduce((sum, i) => sum + i.totalHarga, 0);
     const transaksi: Transaksi = {
-      noDokumen: input.noDokumen || generateNoDokumen(),
-      mode: "proyek",
-      status: "berjalan",
+      noDokumen,
+      mode: existing?.mode || "proyek",
+      status,
       tanggalDokumen: input.tanggalDokumen || formatTanggalPendek(new Date()),
       namaCustomer: input.namaCustomer,
       deskripsi: input.deskripsi,
@@ -30,7 +40,8 @@ export class OrderanService {
       waktuPengiriman: input.waktuPengiriman,
       items: input.items,
       total,
-      modeBagianBawah: "kosong",
+      modeBagianBawah: existing?.modeBagianBawah || "kosong",
+      keteranganKwitansi: existing?.keteranganKwitansi,
     };
     await this.repo.simpanTransaksi(transaksi);
     return transaksi;
