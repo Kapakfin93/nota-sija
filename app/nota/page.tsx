@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
 import { generateNoDokumen, formatPdfFileName } from "../../lib/services/documentNumber";
@@ -320,12 +321,20 @@ export default function NotaPage() {
       >
         {/* Header sticky */}
         <div className="p-4 sticky top-0 z-10 shadow-md flex justify-between items-center text-white bg-blue-900">
-          <h1 className="font-bold text-lg">
-            <i className="fa-solid fa-pen-to-square mr-1" /> Input Nota
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-bold text-base sm:text-lg truncate">
+              <i className="fa-solid fa-pen-to-square mr-1" /> Input Nota
+            </h1>
+            <Link
+              href="/orderan"
+              className="text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95"
+            >
+              <i className="fa-solid fa-file-signature" /> Orderan
+            </Link>
+          </div>
           <button
             onClick={resetAll}
-            className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded"
+            className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded transition active:scale-95"
           >
             Reset
           </button>
