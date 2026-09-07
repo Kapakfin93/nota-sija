@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
 import { generateNoDokumen, formatPdfFileName } from "../../lib/services/documentNumber";
 import { NotaService } from "../../lib/services/notaService";
+import { OrderanService } from "../../lib/services/orderanService";
 import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
 import { ItemBarang, Transaksi } from "../../lib/types/transaksi";
 
@@ -13,6 +14,7 @@ import { ItemBarang, Transaksi } from "../../lib/types/transaksi";
 // Sesuai 3-layer: Presentation layer hanya boleh panggil Service, tidak repo langsung.
 const _repo = new LocalStorageRepository();
 const notaService = new NotaService(_repo);
+const orderanService = new OrderanService(_repo);
 
 const STORAGE_KEY = "eNotaSija";
 
@@ -40,6 +42,11 @@ export default function NotaPage() {
   const router = useRouter();
   // ─── State ───────────────────────────────────────────────────────────────
   const [isLoaded, setIsLoaded] = useState(false); // guard: jangan save sebelum load selesai
+
+  // Modal Tarik dari Orderan Proyek
+  const [isOrderanModalOpen, setIsOrderanModalOpen] = useState(false);
+  const [orderanList, setOrderanList] = useState<Transaksi[]>([]);
+  const [sourceOrderanNo, setSourceOrderanNo] = useState<string | null>(null);
 
   // Nota 1
   const [noDokumen, setNoDokumen] = useState("");
@@ -262,6 +269,40 @@ export default function NotaPage() {
     if (editIdx2 === i) cancelEdit2();
   };
 
+  // ─── Modal Tarik Orderan Handler ──────────────────────────────────────────
+  const bukaModalOrderan = async () => {
+    try {
+      const list = await orderanService.ambilOrderanBerjalan();
+      setOrderanList(list);
+      setIsOrderanModalOpen(true);
+    } catch (e) {
+      console.error("Gagal mengambil daftar orderan berjalan:", e);
+      alert("Gagal memuat daftar orderan aktif.");
+    }
+  };
+
+  const pilihOrderan = (orderan: Transaksi) => {
+    // Option B: Tarik data ke form HANYA mengisi state input UI (tanpa side-effects ke ledger)
+    setNoDokumen(orderan.noDokumen);
+    setNamaCustomer(orderan.namaCustomer);
+    setFileLabel(orderan.namaCustomer.split("\n")[0].trim());
+    setItems(
+      orderan.items.map((it) => ({
+        namaBarang: it.namaBarang,
+        qty: it.qty,
+        satuan: it.satuan || "",
+        hargaSatuan: it.hargaSatuan,
+        totalHarga: it.totalHarga,
+      }))
+    );
+    setSourceOrderanNo(orderan.noDokumen);
+    setIsOrderanModalOpen(false);
+  };
+
+  const batalHubungkanOrderan = () => {
+    setSourceOrderanNo(null);
+  };
+
   // ─── Print: upsert ke repository dengan nomor yang SUDAH ADA & redirect ke /nota/print ───
   const handlePrint = async () => {
     // 1. Simpan state terkini ke localStorage secara sinkron sebelum navigasi
@@ -288,6 +329,11 @@ export default function NotaPage() {
 
     // 2. Simpan ke service
     try {
+      // Option B: Transisi status Orderan ("berjalan" -> "tertagih") HANYA terjadi saat print/finalisasi nota
+      if (sourceOrderanNo) {
+        await orderanService.terbitkanNotaDariOrderan(sourceOrderanNo);
+      }
+
       await notaService.simpanTransaksiSaatIni({
         noDokumen,                              // nomor dari UI state (tidak berubah)
         tanggalDokumen: fmtDate(tanggal),
@@ -344,6 +390,40 @@ export default function NotaPage() {
 
           {/* Info Nota */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3">
+            {/* Tombol Tarik dari Orderan Proyek */}
+            <div className="flex items-center justify-between pb-1 border-b border-gray-200">
+              <span className="text-[11px] font-bold text-gray-700 uppercase flex items-center gap-1.5">
+                <i className="fa-solid fa-file-invoice text-blue-900" /> Dokumen Nota
+              </span>
+              <button
+                type="button"
+                onClick={bukaModalOrderan}
+                className="text-[11px] bg-blue-900 hover:bg-blue-800 text-white px-2.5 py-1 rounded font-medium flex items-center gap-1 transition shadow-sm active:scale-95"
+              >
+                <i className="fa-solid fa-file-import" /> Tarik dari Orderan Proyek
+              </button>
+            </div>
+
+            {/* Indikator Orderan Terhubung */}
+            {sourceOrderanNo && (
+              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 text-amber-900 text-xs px-2.5 py-1.5 rounded">
+                <div className="flex items-center gap-1.5 truncate">
+                  <i className="fa-solid fa-link text-amber-700" />
+                  <span className="truncate">
+                    Terhubung ke Orderan: <strong className="font-mono">{sourceOrderanNo}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={batalHubungkanOrderan}
+                  title="Lepas koneksi orderan"
+                  className="text-amber-700 hover:text-red-700 ml-2 text-xs font-bold px-1"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <div className="w-1/2">
                 <label className="text-[10px] font-bold text-gray-500 uppercase">No. Nota</label>
@@ -925,6 +1005,93 @@ export default function NotaPage() {
           <i className="fa-solid fa-print text-xl" />
         </button>
       </div>
+
+      {/* Modal Dialog: Tarik dari Orderan Proyek */}
+      {isOrderanModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-blue-900 text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-file-import text-lg" />
+                <h2 className="font-bold text-base sm:text-lg">Tarik dari Orderan Proyek</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOrderanModalOpen(false)}
+                className="text-white/80 hover:text-white p-1 rounded transition"
+              >
+                <i className="fa-solid fa-xmark text-lg" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3">
+              <p className="text-xs sm:text-sm text-gray-600">
+                Pilih surat orderan aktif (status: <strong className="text-blue-900">berjalan</strong>) yang akan diterbitkan nota penagihannya. Data customer dan uraian item akan disalin otomatis.
+              </p>
+
+              {orderanList.length === 0 ? (
+                <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-500">
+                  <i className="fa-solid fa-inbox text-3xl mb-2 text-gray-400" />
+                  <p className="text-sm font-medium">Tidak ada Surat Orderan dengan status "berjalan".</p>
+                  <p className="text-xs text-gray-400 mt-1">Semua orderan telah diterbitkan notanya atau belum dibuat.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {orderanList.map((ord) => (
+                    <div
+                      key={ord.noDokumen}
+                      className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-blue-900 hover:bg-blue-50/40 transition flex flex-col sm:flex-row justify-between sm:items-center gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
+                            {ord.noDokumen}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {ord.tanggalDokumen}
+                          </span>
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
+                            {ord.status}
+                          </span>
+                        </div>
+                        <div className="font-bold text-gray-800 text-sm">{ord.namaCustomer}</div>
+                        <div className="text-xs text-gray-500">
+                          {ord.items.length} item • Total: <strong className="text-gray-800">Rp {formatRp(ord.total)}</strong>
+                        </div>
+                        {ord.deskripsi && (
+                          <div className="text-xs text-gray-600 italic">
+                            "{ord.deskripsi}"
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => pilihOrderan(ord)}
+                        className="bg-blue-900 hover:bg-blue-800 text-white text-xs px-3.5 py-2 rounded font-medium transition shadow-sm self-end sm:self-center shrink-0 active:scale-95"
+                      >
+                        Pilih & Salin ke Nota
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsOrderanModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-100 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
