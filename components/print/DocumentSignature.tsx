@@ -33,7 +33,8 @@ export function DocumentSignature({
                   left: "50%",
                   top: "50%",
                   transform: "translate(-50%, -50%) rotate(-5deg)",
-                  width: "130px",
+                  width: "155px",
+                  maxWidth: "none",
                   height: "auto",
                   pointerEvents: "none",
                   zIndex: 1,
@@ -75,7 +76,7 @@ export function DocumentSignature({
             ( ................. )
           </div>
         </div>
-        <div style={{ textAlign: "center", position: "relative" }}>
+        <div style={{ textAlign: "center", position: "relative", minWidth: "120px", marginRight: "14px" }}>
           <div style={{ marginBottom: "40px" }}>Hormat kami,</div>
           {sertakanStempel && (
             <img
@@ -83,10 +84,11 @@ export function DocumentSignature({
               alt="Stempel CV Sinar Ilmu Jaya"
               style={{
                 position: "absolute",
-                left: "50%",
-                top: "14px",
+                left: "calc(50% - 14px)",
+                top: "16px",
                 transform: "translateX(-50%) rotate(-6deg)",
-                width: "130px",
+                width: "155px",
+                maxWidth: "none",
                 height: "auto",
                 pointerEvents: "none",
                 zIndex: 1,
@@ -94,7 +96,7 @@ export function DocumentSignature({
             />
           )}
           <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>
-            &nbsp;
+            ( Habibi )
           </div>
         </div>
       </div>

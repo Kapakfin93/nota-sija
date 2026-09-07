@@ -108,17 +108,22 @@ export function KwitansiBlock({
             alt="Stempel CV Sinar Ilmu Jaya"
             style={{
               position: "absolute",
-              right: "40px",
-              bottom: "-10px",
+              right: "10px",
+              bottom: "8px",
               transform: "rotate(-6deg)",
-              width: "130px",
+              width: "155px",
+              maxWidth: "none",
               height: "auto",
               pointerEvents: "none",
               zIndex: 1,
             }}
           />
         )}
-        ( ................................... )
+        <div style={{ textAlign: "center", minWidth: "140px" }}>
+          <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>
+            ( Habibi )
+          </div>
+        </div>
       </div>
       <div style={{ clear: "both" }} />
     </div>

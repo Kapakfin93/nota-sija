@@ -861,7 +861,7 @@ export default function NotaPage() {
                     <div style={{ marginBottom: "40px" }}>Diterima oleh,</div>
                     <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>( ................. )</div>
                   </div>
-                  <div style={{ textAlign: "center", position: "relative" }}>
+                  <div style={{ textAlign: "center", position: "relative", minWidth: "120px", marginRight: "14px" }}>
                     <div style={{ marginBottom: "40px" }}>Hormat kami,</div>
                     {sertakanStempel && (
                       <img
@@ -869,17 +869,18 @@ export default function NotaPage() {
                         alt="Stempel CV Sinar Ilmu Jaya"
                         style={{
                           position: "absolute",
-                          left: "50%",
-                          top: "14px",
+                          left: "calc(50% - 14px)",
+                          top: "16px",
                           transform: "translateX(-50%) rotate(-6deg)",
-                          width: "130px",
+                          width: "155px",
+                          maxWidth: "none",
                           height: "auto",
                           pointerEvents: "none",
                           zIndex: 1,
                         }}
                       />
                     )}
-                    <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>&nbsp;</div>
+                    <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>( Habibi )</div>
                   </div>
                 </div>
               </div>
@@ -925,17 +926,22 @@ export default function NotaPage() {
                       alt="Stempel CV Sinar Ilmu Jaya"
                       style={{
                         position: "absolute",
-                        right: "40px",
-                        bottom: "-10px",
+                        right: "10px",
+                        bottom: "8px",
                         transform: "rotate(-6deg)",
-                        width: "130px",
+                        width: "155px",
+                        maxWidth: "none",
                         height: "auto",
                         pointerEvents: "none",
                         zIndex: 1,
                       }}
                     />
                   )}
-                  ( ................................... )
+                  <div style={{ textAlign: "center", minWidth: "140px" }}>
+                    <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>
+                      ( Habibi )
+                    </div>
+                  </div>
                 </div>
                 <div style={{ clear: "both" }} />
               </div>
