@@ -10,6 +10,8 @@ export class OrderanService {
   constructor(private repo: ISheetRepository) {}
 
   async buatSuratOrderan(input: {
+    noDokumen?: string; // bisa pakai nomor yang sudah di-generate UI
+    tanggalDokumen?: string; // bisa diedit di UI
     namaCustomer: string;
     deskripsi: string;
     waktuPengerjaan: string;
@@ -18,10 +20,10 @@ export class OrderanService {
   }): Promise<Transaksi> {
     const total = input.items.reduce((sum, i) => sum + i.totalHarga, 0);
     const transaksi: Transaksi = {
-      noDokumen: generateNoDokumen(),
+      noDokumen: input.noDokumen || generateNoDokumen(),
       mode: "proyek",
       status: "berjalan",
-      tanggalDokumen: formatTanggalPendek(new Date()),
+      tanggalDokumen: input.tanggalDokumen || formatTanggalPendek(new Date()),
       namaCustomer: input.namaCustomer,
       deskripsi: input.deskripsi,
       waktuPengerjaan: input.waktuPengerjaan,
@@ -32,6 +34,13 @@ export class OrderanService {
     };
     await this.repo.simpanTransaksi(transaksi);
     return transaksi;
+  }
+
+  // Mengambil semua Surat Orderan yang masih berstatus 'berjalan'
+  // Logika filter bisnis berada di Layer 2 (Service), repository tetap murni.
+  async ambilOrderanBerjalan(): Promise<Transaksi[]> {
+    const semua = await this.repo.ambilSemuaTransaksi();
+    return semua.filter(t => t.mode === "proyek" && t.status === "berjalan");
   }
 
   // Dipanggil saat pekerjaan proyek selesai — nomor dokumen TIDAK berubah,

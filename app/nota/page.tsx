@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
 import { generateNoDokumen, formatPdfFileName } from "../../lib/services/documentNumber";
 import { NotaService } from "../../lib/services/notaService";
-import { InMemoryRepository } from "../../lib/repositories/inMemoryRepository";
+import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
 import { ItemBarang, Transaksi } from "../../lib/types/transaksi";
 
 // --- Module-level singleton: satu instance per session browser ---
 // Sesuai 3-layer: Presentation layer hanya boleh panggil Service, tidak repo langsung.
-const _repo = new InMemoryRepository();
+const _repo = new LocalStorageRepository();
 const notaService = new NotaService(_repo);
 
 const STORAGE_KEY = "eNotaSija";
