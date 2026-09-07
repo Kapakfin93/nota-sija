@@ -65,6 +65,7 @@ export default function NotaPage() {
   const [editIdx2, setEditIdx2] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState("input");
+  const [fitToScreen, setFitToScreen] = useState(true); // mode pas layar untuk mobile preview
 
   // ─── Mount: load dari localStorage (sekali) ───────────────────────────────
   useEffect(() => {
@@ -609,7 +610,43 @@ export default function NotaPage() {
           .header-title { font-size: 15pt; font-weight: 900; color: #1e3a8a; line-height: 1.2; letter-spacing: -0.2px; font-family: 'Times New Roman', serif; white-space: nowrap; }
           .header-sub { font-size: 10pt; font-weight: bold; color: #b91c1c; }
           .header-small { font-size: 9pt; color: #b91c1c; }
+
+          @media (max-width: 1023px) {
+            .fit-screen-container {
+              width: 100%;
+              display: flex;
+              justify-content: center;
+              overflow: hidden;
+            }
+            .fit-screen-container .nota-wrapper {
+              transform: scale(calc((100vw - 24px) / 794));
+              transform-origin: top center;
+              margin-bottom: calc(-1 * (1123px - (1123px * (100vw - 24px) / 794)));
+            }
+          }
         `}</style>
+
+        {/* Mobile Action Bar di atas Preview */}
+        <div className="flex lg:hidden w-full px-3 py-2 bg-gray-900/90 backdrop-blur text-white justify-between items-center text-xs sticky top-0 z-20 shadow">
+          <span className="text-gray-300 font-mono text-[11px] truncate max-w-[150px]">
+            {noDokumen || "Nota"}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFitToScreen(!fitToScreen)}
+              className="bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded text-[11px] font-medium flex items-center gap-1 active:scale-95 transition"
+            >
+              <i className={`fa-solid ${fitToScreen ? "fa-arrows-left-right" : "fa-compress"}`} />
+              {fitToScreen ? "100%" : "Fit Layar"}
+            </button>
+            <button
+              onClick={handlePrint}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded text-[11px] flex items-center gap-1 active:scale-95 transition shadow"
+            >
+              <i className="fa-solid fa-print" /> Cetak
+            </button>
+          </div>
+        </div>
 
         {/* Desktop Action Header */}
         <div className="hidden lg:flex w-full max-w-[210mm] justify-between items-center bg-gray-800/80 backdrop-blur px-4 py-2.5 rounded-lg text-white text-xs shadow">
@@ -624,7 +661,7 @@ export default function NotaPage() {
           </button>
         </div>
 
-        <div className="w-full overflow-x-auto flex justify-center pb-20 lg:pb-0">
+        <div className={`w-full ${fitToScreen ? "fit-screen-container" : "overflow-x-auto flex justify-start sm:justify-center p-2"} pb-24 lg:pb-0`}>
           <div className="nota-wrapper">
 
             {/* ─────────────── NOTA UTAMA ─────────────── */}
@@ -850,26 +887,30 @@ export default function NotaPage() {
       </div>
 
       {/* Bottom Nav — mobile (no-print + bottom-nav: kedua class dihide saat print) */}
-      <nav className="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-2 z-50 lg:hidden no-print">
+      <nav className="bottom-nav fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 flex justify-around px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.625rem)] z-50 lg:hidden no-print">
         <button
           onClick={() => setActiveTab("input")}
-          className={`flex-1 text-center text-[10px] ${activeTab === "input" ? "text-blue-900 font-bold" : "text-gray-400"}`}
+          className={`flex-1 flex flex-col items-center justify-center py-1 text-[11px] font-medium transition active:scale-95 ${activeTab === "input" ? "text-blue-900 font-bold" : "text-gray-400 hover:text-gray-600"}`}
         >
-          <i className="fa-solid fa-pen-to-square block text-xl mb-1" /> Input
+          <i className="fa-solid fa-pen-to-square text-lg mb-1" />
+          <span>Input Form</span>
         </button>
         <button
           onClick={() => setActiveTab("preview")}
-          className={`flex-1 text-center text-[10px] ${activeTab === "preview" ? "text-blue-900 font-bold" : "text-gray-400"}`}
+          className={`flex-1 flex flex-col items-center justify-center py-1 text-[11px] font-medium transition active:scale-95 ${activeTab === "preview" ? "text-blue-900 font-bold" : "text-gray-400 hover:text-gray-600"}`}
         >
-          <i className="fa-solid fa-receipt block text-xl mb-1" /> Nota
+          <i className="fa-solid fa-receipt text-lg mb-1" />
+          <span>Lihat Nota</span>
         </button>
       </nav>
 
-      {/* Print FAB — mobile */}
-      <div className="fixed bottom-20 right-5 lg:hidden no-print">
+      {/* Print FAB — mobile (posisi di atas bottom nav dengan jarak safe area) */}
+      <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-5 lg:hidden z-40 no-print">
         <button
           onClick={handlePrint}
-          className="bg-gray-900 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center animate-bounce"
+          aria-label="Cetak Nota"
+          title="Cetak Nota"
+          className="bg-blue-900 hover:bg-blue-800 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition transform"
         >
           <i className="fa-solid fa-print text-xl" />
         </button>

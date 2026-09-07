@@ -115,11 +115,11 @@ export default function NotaPrintPage() {
   return (
     <div className="min-h-screen bg-[#525659] py-0 lg:py-8 flex flex-col items-center">
       <title>{dynamicFileName}</title>
-      {/* ── BAR KONTROL (HANYA TAMPIL DI LAYAR, OTOMATIS DISSEMBUNYIKAN SAAT PRINT) ── */}
-      <div className="no-print w-full max-w-[210mm] mb-4 px-3 flex items-center justify-between text-white text-sm">
+      {/* ── BAR KONTROL (HANYA TAMPIL DI LAYAR, OTOMATIS DISEMBUNYIKAN SAAT PRINT) ── */}
+      <div className="no-print w-full max-w-[210mm] mb-3 px-3 pt-[max(env(safe-area-inset-top),0.75rem)] flex flex-wrap items-center justify-between gap-2 text-white text-sm">
         <button
           onClick={() => router.push("/nota")}
-          className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded flex items-center gap-1.5 transition"
+          className="min-h-[40px] bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition active:scale-95 text-xs sm:text-sm"
         >
           <i className="fa-solid fa-arrow-left" /> Kembali ke Form
         </button>
@@ -131,9 +131,9 @@ export default function NotaPrintPage() {
 
         <button
           onClick={() => window.print()}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded shadow flex items-center gap-1.5 transition"
+          className="min-h-[40px] bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg shadow flex items-center gap-1.5 transition active:scale-95 text-xs sm:text-sm"
         >
-          <i className="fa-solid fa-print" /> Cetak Sekarang (Ctrl+P)
+          <i className="fa-solid fa-print" /> Cetak Sekarang
         </button>
       </div>
 

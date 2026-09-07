@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html, body {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @media print {
   @page { size: A4 portrait; margin: 0; }
   body { background: white; padding: 0; margin: 0; }
@@ -9,6 +13,7 @@
     min-height: 297mm !important;
     margin: 0 !important;
     box-shadow: none !important;
+    transform: none !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
