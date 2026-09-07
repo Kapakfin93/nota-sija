@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { terbilang } from "../../../lib/services/terbilang";
@@ -240,13 +239,10 @@ export default function NotaPrintPage() {
             <div className="flex justify-between items-start mb-2">
               <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
                 <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                  <Image
+                  <img
                     src="/logo.png"
-                    alt="Logo"
-                    width={42}
-                    height={42}
-                    style={{ width: "42px", height: "auto" }}
-                    priority
+                    alt="Logo CV Sinar Ilmu Jaya"
+                    style={{ width: "42px", height: "auto", display: "block" }}
                   />
                 </div>
                 <div style={{ minWidth: 0 }}>
@@ -384,12 +380,10 @@ export default function NotaPrintPage() {
               <div className="flex justify-between items-start" style={{ marginBottom: "10px" }}>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <div style={{ flexShrink: 0 }}>
-                    <Image
+                    <img
                       src="/logo.png"
-                      alt="Logo"
-                      width={42}
-                      height={42}
-                      style={{ width: "42px", height: "auto" }}
+                      alt="Logo CV Sinar Ilmu Jaya"
+                      style={{ width: "42px", height: "auto", display: "block" }}
                     />
                   </div>
                   <div>
@@ -457,12 +451,10 @@ export default function NotaPrintPage() {
               <div className="flex justify-between items-start mb-2">
                 <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
                   <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                    <Image
+                    <img
                       src="/logo.png"
-                      alt="Logo"
-                      width={42}
-                      height={42}
-                      style={{ width: "42px", height: "auto" }}
+                      alt="Logo CV Sinar Ilmu Jaya"
+                      style={{ width: "42px", height: "auto", display: "block" }}
                     />
                   </div>
                   <div style={{ minWidth: 0 }}>

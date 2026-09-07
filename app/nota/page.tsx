@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
 import { generateNoDokumen, formatPdfFileName } from "../../lib/services/documentNumber";
@@ -634,7 +633,7 @@ export default function NotaPage() {
               <div className="flex justify-between items-start mb-2">
                 <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
                   <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                    <Image src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" width={42} height={42} style={{ width: "42px", height: "auto" }} />
+                    <img src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" style={{ width: "42px", height: "auto", display: "block" }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div className="header-title">CV. SINAR ILMU JAYA</div>
@@ -725,7 +724,7 @@ export default function NotaPage() {
                 <div className="flex justify-between items-start" style={{ marginBottom: "10px" }}>
                   <div style={{ display: "flex", gap: "8px" }}>
                     <div style={{ flexShrink: 0 }}>
-                      <Image src="/logo.png" alt="Logo" width={42} height={42} style={{ width: "42px", height: "auto" }} />
+                      <img src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" style={{ width: "42px", height: "auto", display: "block" }} />
                     </div>
                     <div>
                       <div className="header-title">CV. SINAR ILMU JAYA</div>
@@ -762,7 +761,7 @@ export default function NotaPage() {
                 <div className="flex justify-between items-start mb-2">
                   <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
                     <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                      <Image src="/logo.png" alt="Logo" width={42} height={42} style={{ width: "42px", height: "auto" }} />
+                      <img src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" style={{ width: "42px", height: "auto", display: "block" }} />
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div className="header-title">CV. SINAR ILMU JAYA</div>
