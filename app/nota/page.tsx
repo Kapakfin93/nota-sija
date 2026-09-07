@@ -55,6 +55,7 @@ export default function NotaPage() {
   const [fileLabel, setFileLabel] = useState(""); // label penyesuaian nama file PDF
   const [bottomMode, setBottomMode] = useState("none");
   const [ketKwitansi, setKetKwitansi] = useState("");
+  const [sertakanStempel, setSertakanStempel] = useState(false);
 
   const [items, setItems] = useState<ItemBarang[]>([]);
   const [itemName, setItemName] = useState("");
@@ -90,6 +91,7 @@ export default function NotaPage() {
         const mode = d.bottomMode || (d.kwitansi ? "kwitansi" : "none");
         setBottomMode(mode);
         setKetKwitansi(d.ket || "");
+        setSertakanStempel(Boolean(d.sertakanStempel));
         setItems2(d.items2 || []);
         setNoDokumen2(d.no2 || generateNoDokumen());
         setTanggal2(d.date2 || todayStr());
@@ -101,6 +103,7 @@ export default function NotaPage() {
         setTanggal(todayStr());
         setTanggal2(todayStr());
         setFileLabel("");
+        setSertakanStempel(false);
       }
     } catch {
       // localStorage corrupt — mulai bersih
@@ -109,6 +112,7 @@ export default function NotaPage() {
       setTanggal(todayStr());
       setTanggal2(todayStr());
       setFileLabel("");
+      setSertakanStempel(false);
     }
     setIsLoaded(true);
   }, []);
@@ -126,6 +130,7 @@ export default function NotaPage() {
         fileLabel,
         bottomMode,
         ket: ketKwitansi,
+        sertakanStempel,
         items2,
         no2: noDokumen2,
         date2: tanggal2,
@@ -134,7 +139,7 @@ export default function NotaPage() {
     );
   }, [
     isLoaded, items, noDokumen, tanggal, namaCustomer, fileLabel,
-    bottomMode, ketKwitansi, items2, noDokumen2, tanggal2, namaCustomer2,
+    bottomMode, ketKwitansi, sertakanStempel, items2, noDokumen2, tanggal2, namaCustomer2,
   ]);
 
   // ─── Derived ──────────────────────────────────────────────────────────────
@@ -317,6 +322,7 @@ export default function NotaPage() {
           fileLabel,
           bottomMode,
           ket: ketKwitansi,
+          sertakanStempel,
           items2,
           no2: noDokumen2,
           date2: tanggal2,
@@ -497,6 +503,24 @@ export default function NotaPage() {
                 Nota Kedua (pekerjaan lain, hemat kertas)
               </label>
             </div>
+          </div>
+
+          {/* Opsi Stempel Toko */}
+          <div className="bg-white border border-gray-200 rounded-lg p-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={sertakanStempel}
+                onChange={(e) => setSertakanStempel(e.target.checked)}
+                className="w-4 h-4 text-blue-900 rounded border-gray-300 focus:ring-blue-900"
+              />
+              <span className="font-semibold text-gray-700 flex items-center gap-1.5">
+                <i className="fa-solid fa-stamp text-blue-900" /> Sertakan Stempel Basah
+              </span>
+            </label>
+            <p className="text-[11px] text-gray-400 mt-1 ml-6 leading-tight">
+              Otomatis menampilkan stempel CV. Sinar Ilmu Jaya pada kolom tanda tangan Nota & Kwitansi.
+            </p>
           </div>
 
           {/* Keterangan Kwitansi */}
@@ -837,8 +861,24 @@ export default function NotaPage() {
                     <div style={{ marginBottom: "40px" }}>Diterima oleh,</div>
                     <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>( ................. )</div>
                   </div>
-                  <div style={{ textAlign: "center" }}>
+                  <div style={{ textAlign: "center", position: "relative" }}>
                     <div style={{ marginBottom: "40px" }}>Hormat kami,</div>
+                    {sertakanStempel && (
+                      <img
+                        src="/stempel.png"
+                        alt="Stempel CV Sinar Ilmu Jaya"
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "14px",
+                          transform: "translateX(-50%) rotate(-6deg)",
+                          width: "130px",
+                          height: "auto",
+                          pointerEvents: "none",
+                          zIndex: 1,
+                        }}
+                      />
+                    )}
                     <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>&nbsp;</div>
                   </div>
                 </div>
@@ -878,7 +918,26 @@ export default function NotaPage() {
                   Rp {formatRp(total)}
                 </div>
                 <div style={{ textAlign: "right", marginTop: "30px", fontSize: "9.5pt" }}>Semarang, {fmtDate(tanggal)}</div>
-                <div style={{ textAlign: "right", marginTop: "45px", fontSize: "9.5pt" }}>( ................................... )</div>
+                <div style={{ textAlign: "right", marginTop: "45px", fontSize: "9.5pt", position: "relative", display: "inline-block", float: "right" }}>
+                  {sertakanStempel && (
+                    <img
+                      src="/stempel.png"
+                      alt="Stempel CV Sinar Ilmu Jaya"
+                      style={{
+                        position: "absolute",
+                        right: "40px",
+                        bottom: "-10px",
+                        transform: "rotate(-6deg)",
+                        width: "130px",
+                        height: "auto",
+                        pointerEvents: "none",
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+                  ( ................................... )
+                </div>
+                <div style={{ clear: "both" }} />
               </div>
             )}
 

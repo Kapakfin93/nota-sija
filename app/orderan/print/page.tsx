@@ -23,6 +23,7 @@ interface StoredOrderanData {
   kirim?: string;
   fileLabel?: string;
   items?: ItemBarang[];
+  sertakanStempel?: boolean;
 }
 
 function fmtDate(dateStr?: string): string {
@@ -149,6 +150,7 @@ export default function OrderanPrintPage() {
             variant="orderan"
             tanggalStr={fmtDate(data.date)}
             kota="Semarang"
+            sertakanStempel={Boolean(data.sertakanStempel)}
           />
         </div>
       </div>

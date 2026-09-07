@@ -10,6 +10,7 @@ interface KwitansiBlockProps {
   nominal: number;
   keterangan?: string;
   kota?: string;
+  sertakanStempel?: boolean;
 }
 
 export function KwitansiBlock({
@@ -19,6 +20,7 @@ export function KwitansiBlock({
   nominal,
   keterangan,
   kota = "Semarang",
+  sertakanStempel = false,
 }: KwitansiBlockProps) {
   const formatRp = (n: number) => n.toLocaleString("id-ID");
 
@@ -90,9 +92,35 @@ export function KwitansiBlock({
       <div style={{ textAlign: "right", marginTop: "30px", fontSize: "9.5pt" }}>
         {kota}, {tanggalStr}
       </div>
-      <div style={{ textAlign: "right", marginTop: "45px", fontSize: "9.5pt" }}>
+      <div
+        style={{
+          textAlign: "right",
+          marginTop: "45px",
+          fontSize: "9.5pt",
+          position: "relative",
+          display: "inline-block",
+          float: "right",
+        }}
+      >
+        {sertakanStempel && (
+          <img
+            src="/stempel.png"
+            alt="Stempel CV Sinar Ilmu Jaya"
+            style={{
+              position: "absolute",
+              right: "40px",
+              bottom: "-10px",
+              transform: "rotate(-6deg)",
+              width: "130px",
+              height: "auto",
+              pointerEvents: "none",
+              zIndex: 1,
+            }}
+          />
+        )}
         ( ................................... )
       </div>
+      <div style={{ clear: "both" }} />
     </div>
   );
 }

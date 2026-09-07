@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -38,6 +38,7 @@ export default function OrderanPage() {
   const [waktuPengerjaan, setWaktuPengerjaan] = useState("");
   const [waktuPengiriman, setWaktuPengiriman] = useState("");
   const [fileLabel, setFileLabel] = useState("");
+  const [sertakanStempel, setSertakanStempel] = useState(false);
 
   // Items State (6 Kolom: Nama, Qty, Satuan, Harga, Total)
   const [items, setItems] = useState<ItemBarang[]>([]);
@@ -64,14 +65,17 @@ export default function OrderanPage() {
         setWaktuPengerjaan(d.kerja || "");
         setWaktuPengiriman(d.kirim || "");
         setFileLabel(d.fileLabel || "");
+        setSertakanStempel(Boolean(d.sertakanStempel));
         setItems(d.items || []);
       } else {
         setNoDokumen(generateNoDokumen());
         setTanggal(todayStr());
+        setSertakanStempel(false);
       }
     } catch {
       setNoDokumen(generateNoDokumen());
       setTanggal(todayStr());
+      setSertakanStempel(false);
     }
     setIsLoaded(true);
   }, []);
@@ -90,13 +94,14 @@ export default function OrderanPage() {
           kerja: waktuPengerjaan,
           kirim: waktuPengiriman,
           fileLabel,
+          sertakanStempel,
           items,
         })
       );
     } catch (e) {
       console.error("Gagal simpan draft orderan:", e);
     }
-  }, [isLoaded, noDokumen, tanggal, namaCustomer, deskripsi, waktuPengerjaan, waktuPengiriman, fileLabel, items]);
+  }, [isLoaded, noDokumen, tanggal, namaCustomer, deskripsi, waktuPengerjaan, waktuPengiriman, fileLabel, sertakanStempel, items]);
 
   const total = items.reduce((s, i) => s + (i.totalHarga || i.qty * i.hargaSatuan), 0);
   const formatRp = (n: number) => n.toLocaleString("id-ID");
@@ -302,6 +307,24 @@ export default function OrderanPage() {
                 placeholder={namaCustomer ? `Default: ${namaCustomer.split("\n")[0].trim()}` : "misal: unimus / dinas..."}
               />
             </div>
+          </div>
+
+          {/* Opsi Stempel Toko */}
+          <div className="bg-white border border-gray-200 rounded-lg p-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={sertakanStempel}
+                onChange={(e) => setSertakanStempel(e.target.checked)}
+                className="w-4 h-4 text-blue-900 rounded border-gray-300 focus:ring-blue-900"
+              />
+              <span className="font-semibold text-gray-700 flex items-center gap-1.5">
+                <i className="fa-solid fa-stamp text-blue-900" /> Sertakan Stempel Basah
+              </span>
+            </label>
+            <p className="text-[11px] text-gray-400 mt-1 ml-6 leading-tight">
+              Otomatis menampilkan stempel CV. Sinar Ilmu Jaya pada kolom tanda tangan Penyedia.
+            </p>
           </div>
 
           {/* Form Tambah Item 6 Kolom */}
@@ -584,10 +607,27 @@ export default function OrderanPage() {
 
             {/* Tanda Tangan Tunggal Penyedia */}
             <div className="flex justify-end mt-10" style={{ fontSize: "9pt" }}>
-              <div style={{ textAlign: "center", width: "220px" }}>
+              <div style={{ textAlign: "center", width: "220px", position: "relative" }}>
                 <div style={{ marginBottom: "4px" }}>Semarang, {fmtDate(tanggal)}</div>
                 <div style={{ marginBottom: "4px" }}>Penyedia,</div>
-                <div style={{ height: "60px" }} />
+                <div style={{ height: "60px", position: "relative" }}>
+                  {sertakanStempel && (
+                    <img
+                      src="/stempel.png"
+                      alt="Stempel CV Sinar Ilmu Jaya"
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: "50%",
+                        transform: "translate(-50%, -50%) rotate(-5deg)",
+                        width: "130px",
+                        height: "auto",
+                        pointerEvents: "none",
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+                </div>
                 <div style={{ borderTop: "1px solid #333", paddingTop: "4px", fontWeight: "bold" }}>
                   CV. SINAR ILMU JAYA
                 </div>

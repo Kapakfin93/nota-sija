@@ -6,22 +6,41 @@ interface DocumentSignatureProps {
   variant: "nota" | "orderan";
   tanggalStr?: string;
   kota?: string;
+  sertakanStempel?: boolean;
 }
 
 export function DocumentSignature({
   variant,
   tanggalStr = "-",
   kota = "Semarang",
+  sertakanStempel = false,
 }: DocumentSignatureProps) {
   if (variant === "orderan") {
     return (
       <div className="flex justify-end mt-10" style={{ fontSize: "9pt" }}>
-        <div style={{ textAlign: "center", width: "220px" }}>
+        <div style={{ textAlign: "center", width: "220px", position: "relative" }}>
           <div style={{ marginBottom: "4px" }}>
             {kota}, {tanggalStr}
           </div>
           <div style={{ marginBottom: "4px" }}>Penyedia,</div>
-          <div style={{ height: "60px" }} />
+          <div style={{ height: "60px", position: "relative" }}>
+            {sertakanStempel && (
+              <img
+                src="/stempel.png"
+                alt="Stempel CV Sinar Ilmu Jaya"
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  transform: "translate(-50%, -50%) rotate(-5deg)",
+                  width: "130px",
+                  height: "auto",
+                  pointerEvents: "none",
+                  zIndex: 1,
+                }}
+              />
+            )}
+          </div>
           <div style={{ borderTop: "1px solid #333", paddingTop: "4px", fontWeight: "bold" }}>
             CV. SINAR ILMU JAYA
           </div>
@@ -56,8 +75,24 @@ export function DocumentSignature({
             ( ................. )
           </div>
         </div>
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", position: "relative" }}>
           <div style={{ marginBottom: "40px" }}>Hormat kami,</div>
+          {sertakanStempel && (
+            <img
+              src="/stempel.png"
+              alt="Stempel CV Sinar Ilmu Jaya"
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "14px",
+                transform: "translateX(-50%) rotate(-6deg)",
+                width: "130px",
+                height: "auto",
+                pointerEvents: "none",
+                zIndex: 1,
+              }}
+            />
+          )}
           <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>
             &nbsp;
           </div>

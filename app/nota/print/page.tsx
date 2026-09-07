@@ -28,6 +28,7 @@ interface StoredNotaData {
   date2?: string;
   cust2?: string;
   kwitansi?: boolean;
+  sertakanStempel?: boolean;
 }
 
 function fmtDate(dateStr?: string): string {
@@ -146,9 +147,10 @@ export default function NotaPrintPage() {
               terbilangStyle="default"
             />
 
-            <DocumentSignature variant="nota" />
+            <DocumentSignature variant="nota" sertakanStempel={Boolean(data.sertakanStempel)} />
           </div>
 
+          {/* ─────────────── BAGIAN BAWAH: KWITANSI ─────────────── */}
           {bottomMode === "kwitansi" && (
             <KwitansiBlock
               noDokumen={data.no || "-"}
@@ -157,9 +159,11 @@ export default function NotaPrintPage() {
               nominal={grandTotal}
               keterangan={data.ket}
               kota="Semarang"
+              sertakanStempel={Boolean(data.sertakanStempel)}
             />
           )}
 
+          {/* ─────────────── BAGIAN BAWAH: NOTA KEDUA ─────────────── */}
           {bottomMode === "nota2" && (
             <div className="doc-half kwitansi-half">
               <DocumentHeader
@@ -180,7 +184,7 @@ export default function NotaPrintPage() {
                 terbilangStyle="default"
               />
 
-              <DocumentSignature variant="nota" />
+              <DocumentSignature variant="nota" sertakanStempel={Boolean(data.sertakanStempel)} />
             </div>
           )}
         </div>
