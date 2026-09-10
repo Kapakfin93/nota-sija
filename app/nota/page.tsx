@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
-import { generateNoDokumen, formatPdfFileName } from "../../lib/services/documentNumber";
+import { generateNoDokumen, formatPdfFileName, updateNoDokumenTanggal } from "../../lib/services/documentNumber";
+import { KwitansiBlock } from "../../components/print/KwitansiBlock";
 import { NotaService } from "../../lib/services/notaService";
 import { OrderanService } from "../../lib/services/orderanService";
 import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
@@ -25,6 +26,16 @@ function fmtDate(dateStr: string): string {
   if (parts.length !== 3) return "-";
   const [y, m, d] = parts;
   return `${d}/${m}/${y.slice(-2)}`;
+}
+
+// Helper: DD/MM/YY atau DD/MM/YY/NN → YYYY-MM-DD (untuk input date HTML5)
+function parseShortDateToIso(shortDate?: string): string | null {
+  if (!shortDate) return null;
+  const parts = shortDate.split("/");
+  if (parts.length < 3) return null;
+  const [d, m, y] = parts;
+  const fullYear = y.length === 2 ? `20${y}` : y;
+  return `${fullYear}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
 // Mapping UI mode string → Transaksi["modeBagianBawah"] type
@@ -289,6 +300,10 @@ export default function NotaPage() {
   const pilihOrderan = (orderan: Transaksi) => {
     // Option B: Tarik data ke form HANYA mengisi state input UI (tanpa side-effects ke ledger)
     setNoDokumen(orderan.noDokumen);
+    const orderanIsoDate = parseShortDateToIso(orderan.tanggalDokumen) || parseShortDateToIso(orderan.noDokumen);
+    if (orderanIsoDate) {
+      setTanggal(orderanIsoDate);
+    }
     setNamaCustomer(orderan.namaCustomer);
     setFileLabel(orderan.namaCustomer.split("\n")[0].trim());
     setItems(
@@ -445,7 +460,11 @@ export default function NotaPage() {
                 <input
                   type="date"
                   value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTanggal(val);
+                    setNoDokumen((prevNo) => updateNoDokumenTanggal(prevNo, val));
+                  }}
                   className="w-full p-2 border border-gray-300 rounded text-sm"
                 />
               </div>
@@ -552,7 +571,16 @@ export default function NotaPage() {
                   </div>
                   <div className="w-1/2">
                     <label className="text-[10px] font-bold text-gray-500 uppercase">Tanggal</label>
-                    <input type="date" value={tanggal2} onChange={(e) => setTanggal2(e.target.value)} className="w-full p-2 border border-gray-300 rounded text-sm" />
+                    <input
+                      type="date"
+                      value={tanggal2}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTanggal2(val);
+                        setNoDokumen2((prevNo) => updateNoDokumenTanggal(prevNo, val));
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                    />
                   </div>
                 </div>
                 <div>
@@ -888,63 +916,15 @@ export default function NotaPage() {
 
             {/* ─────────────── KWITANSI ─────────────── */}
             {bottomMode === "kwitansi" && (
-              <div className="doc-half kwitansi-half">
-                <div className="flex justify-between items-start" style={{ marginBottom: "10px" }}>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <div style={{ flexShrink: 0 }}>
-                      <img src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" style={{ width: "42px", height: "auto", display: "block" }} />
-                    </div>
-                    <div>
-                      <div className="header-title">CV. SINAR ILMU JAYA</div>
-                      <div className="header-sub">Percetakan - Digital Printing - Souvenir</div>
-                      <div className="header-small mt-1">Jl. Kapas Tengah II Blok F No.721 / 0822 30563792</div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "8pt", color: "#555" }}>NOTA NOMOR</div>
-                    <div style={{ fontWeight: "bold", fontSize: "10pt", fontFamily: "monospace" }}>{noDokumen}</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: "center", fontSize: "18pt", fontWeight: 900, letterSpacing: "2px", color: "#1e3a8a", margin: "10px 0" }}>
-                  KWITANSI
-                </div>
-                <div style={{ fontSize: "10pt", lineHeight: 2 }}>
-                  <b>Sudah diterima dari</b><br />
-                  Nama &nbsp;&nbsp;&nbsp;&nbsp;: <span className="font-bold">{namaCustomer || "-"}</span><br />
-                  {/* terbilang kapital: value-nya uppercase, bukan hanya CSS — aman saat print */}
-                  Jumlah &nbsp;&nbsp;: <span className="font-bold" style={{ fontStyle: "italic" }}>{terbilang(total, { kapital: true })}</span><br />
-                  Keterangan : <span className="italic" style={{ fontSize: "9pt" }}>{ketKwitansi || "-"}</span>
-                </div>
-                <div style={{ border: "2px solid #1e3a8a", marginTop: "14px", padding: "10px", textAlign: "center", fontWeight: "bold", fontSize: "13pt", whiteSpace: "nowrap" }}>
-                  Rp {formatRp(total)}
-                </div>
-                <div style={{ textAlign: "right", marginTop: "30px", fontSize: "9.5pt" }}>Semarang, {fmtDate(tanggal)}</div>
-                <div style={{ textAlign: "right", marginTop: "45px", fontSize: "9.5pt", position: "relative", display: "inline-block", float: "right" }}>
-                  {sertakanStempel && (
-                    <img
-                      src="/stempel.png"
-                      alt="Stempel CV Sinar Ilmu Jaya"
-                      style={{
-                        position: "absolute",
-                        right: "10px",
-                        bottom: "8px",
-                        transform: "rotate(-6deg)",
-                        width: "155px",
-                        maxWidth: "none",
-                        height: "auto",
-                        pointerEvents: "none",
-                        zIndex: 1,
-                      }}
-                    />
-                  )}
-                  <div style={{ textAlign: "center", minWidth: "140px" }}>
-                    <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>
-                      ( Habibi )
-                    </div>
-                  </div>
-                </div>
-                <div style={{ clear: "both" }} />
-              </div>
+              <KwitansiBlock
+                noDokumen={noDokumen}
+                tanggalStr={fmtDate(tanggal)}
+                namaCustomer={namaCustomer}
+                nominal={total}
+                keterangan={ketKwitansi}
+                kota="Semarang"
+                sertakanStempel={sertakanStempel}
+              />
             )}
 
             {/* ─────────────── NOTA KEDUA ─────────────── */}

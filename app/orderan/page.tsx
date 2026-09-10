@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
-import { generateNoDokumen, formatPdfFileName } from "../../lib/services/documentNumber";
+import { generateNoDokumen, formatPdfFileName, updateNoDokumenTanggal } from "../../lib/services/documentNumber";
 import { OrderanService } from "../../lib/services/orderanService";
 import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
 import { ItemBarang } from "../../lib/types/transaksi";
@@ -246,7 +246,11 @@ export default function OrderanPage() {
                 <input
                   type="date"
                   value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTanggal(val);
+                    setNoDokumen((prevNo) => updateNoDokumenTanggal(prevNo, val));
+                  }}
                   className="w-full p-2 border border-gray-300 rounded text-sm"
                 />
               </div>
