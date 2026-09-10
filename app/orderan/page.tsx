@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
 import { generateNoDokumen, formatPdfFileName, updateNoDokumenTanggal } from "../../lib/services/documentNumber";
+import { DocumentHeader } from "../../components/print/DocumentHeader";
+import { DocumentTable } from "../../components/print/DocumentTable";
+import { DocumentSignature } from "../../components/print/DocumentSignature";
 import { OrderanService } from "../../lib/services/orderanService";
 import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
 import { ItemBarang } from "../../lib/types/transaksi";
@@ -493,55 +496,14 @@ export default function OrderanPage() {
         {/* Kertas A4 */}
         <div className={`w-full ${fitToScreen ? "fit-screen-container" : "overflow-x-auto flex justify-start sm:justify-center p-2"} pb-24 lg:pb-0`}>
           <div className={`nota-wrapper ${fitToScreen ? "fit-screen-wrapper" : ""}`}>
-            {/* Header */}
-            <div className="flex justify-between items-start mb-2">
-              <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                  <img
-                    src="/logo.png"
-                    alt="Logo CV Sinar Ilmu Jaya"
-                    style={{ width: "42px", height: "auto", display: "block" }}
-                  />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div className="header-title">CV. SINAR ILMU JAYA</div>
-                  <div className="header-sub">Percetakan - Digital Printing - Souvenir</div>
-                  <div className="header-small mt-1">Jl. Kapas Tengah II Blok F No.721 / 0822 30563792</div>
-                </div>
-              </div>
-              <div style={{ width: "26%", textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontSize: "8pt", color: "#555" }}>KEPADA</div>
-                <div className="font-bold text-black" style={{ fontSize: "9.5pt", minHeight: "18px" }}>
-                  {namaCustomer || "-"}
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full" style={{ height: "2px", background: "#1e3a8a", margin: "6px 0 8px" }} />
-
-            <div className="flex items-end justify-between mb-2">
-              <div className="flex items-end">
-                <span
-                  style={{
-                    background: "#1e3a8a",
-                    color: "white",
-                    padding: "2px 8px",
-                    fontWeight: "bold",
-                    fontSize: "9pt",
-                    borderRadius: "2px",
-                  }}
-                >
-                  SURAT ORDERAN
-                </span>
-                <span style={{ fontWeight: "bold", fontSize: "10.5pt", marginLeft: "8px", fontFamily: "monospace" }}>
-                  {noDokumen || "-"}
-                </span>
-              </div>
-              <div style={{ textAlign: "right", fontSize: "9pt" }}>
-                <span style={{ color: "#555" }}>Tanggal:</span>{" "}
-                <span className="font-bold">{fmtDate(tanggal)}</span>
-              </div>
-            </div>
+            <DocumentHeader
+              documentTitle="SURAT ORDERAN"
+              noDokumen={noDokumen || "-"}
+              tanggalStr={fmtDate(tanggal)}
+              namaCustomer={namaCustomer || "-"}
+              recipientLabel="KEPADA"
+              layoutType="inline_date"
+            />
 
             <div style={{ fontSize: "9.5pt", marginBottom: "6px" }}>
               <b>Paket Pesanan:</b> <span>{deskripsi || "-"}</span>
@@ -551,93 +513,21 @@ export default function OrderanPage() {
               <b>Waktu Pengiriman:</b> <span>{waktuPengiriman || "-"}</span>
             </div>
 
-            {/* Tabel 6 Kolom */}
-            <table className="nota-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "26px" }}>NO</th>
-                  <th style={{ textAlign: "left" }}>URAIAN BARANG/JASA</th>
-                  <th style={{ width: "50px" }}>QTY</th>
-                  <th style={{ width: "60px" }}>SATUAN</th>
-                  <th style={{ width: "100px" }}>HARGA SATUAN</th>
-                  <th style={{ width: "120px" }}>TOTAL HARGA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td style={{ textAlign: "center" }}>{idx + 1}</td>
-                    <td>{item.namaBarang}</td>
-                    <td style={{ textAlign: "center" }}>{item.qty}</td>
-                    <td style={{ textAlign: "center" }}>{item.satuan || "-"}</td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {formatRp(item.hargaSatuan)}
-                    </td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {formatRp(item.totalHarga || item.qty * item.hargaSatuan)}
-                    </td>
-                  </tr>
-                ))}
-                {items.length < 5 &&
-                  Array.from({ length: 5 - items.length }).map((_, k) => (
-                    <tr key={`empty-${k}`}>
-                      <td style={{ textAlign: "center" }}>&nbsp;</td>
-                      <td />
-                      <td />
-                      <td />
-                      <td />
-                      <td />
-                    </tr>
-                  ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "right" }}>
-                    TOTAL
-                  </td>
-                  <td style={{ textAlign: "right", fontSize: "11pt", whiteSpace: "nowrap" }}>
-                    Rp {formatRp(total)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            <DocumentTable
+              mode="orderan"
+              items={items}
+              minRows={5}
+              showTerbilang={true}
+              terbilangKapital={true}
+              terbilangStyle="inline"
+            />
 
-            <div style={{ fontSize: "8.5pt" }}>
-              <b>Terbilang :</b>{" "}
-              <span style={{ fontStyle: "italic" }}>
-                {terbilang(total, { kapital: true })}
-              </span>
-            </div>
-
-            {/* Tanda Tangan Tunggal Penyedia */}
-            <div className="flex justify-end mt-10" style={{ fontSize: "9pt" }}>
-              <div style={{ textAlign: "center", width: "220px", position: "relative" }}>
-                <div style={{ marginBottom: "4px" }}>Semarang, {fmtDate(tanggal)}</div>
-                <div style={{ marginBottom: "4px" }}>Penyedia,</div>
-                <div style={{ height: "60px", position: "relative" }}>
-                  {sertakanStempel && (
-                    <img
-                      src="/stempel.png"
-                      alt="Stempel CV Sinar Ilmu Jaya"
-                      style={{
-                        position: "absolute",
-                        left: "50%",
-                        top: "50%",
-                        transform: "translate(-50%, -50%) rotate(-5deg)",
-                        width: "155px",
-                        maxWidth: "none",
-                        height: "auto",
-                        pointerEvents: "none",
-                        zIndex: 1,
-                      }}
-                    />
-                  )}
-                </div>
-                <div style={{ borderTop: "1px solid #333", paddingTop: "4px", fontWeight: "bold" }}>
-                  CV. SINAR ILMU JAYA
-                </div>
-              </div>
-            </div>
+            <DocumentSignature
+              variant="orderan"
+              tanggalStr={fmtDate(tanggal)}
+              kota="Semarang"
+              sertakanStempel={sertakanStempel}
+            />
           </div>
         </div>
       </div>

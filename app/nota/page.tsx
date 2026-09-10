@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { terbilang } from "../../lib/services/terbilang";
 import { generateNoDokumen, formatPdfFileName, updateNoDokumenTanggal } from "../../lib/services/documentNumber";
 import { KwitansiBlock } from "../../components/print/KwitansiBlock";
+import { DocumentHeader } from "../../components/print/DocumentHeader";
+import { DocumentTable } from "../../components/print/DocumentTable";
+import { DocumentSignature } from "../../components/print/DocumentSignature";
 import { NotaService } from "../../lib/services/notaService";
 import { OrderanService } from "../../lib/services/orderanService";
 import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
@@ -808,110 +811,25 @@ export default function NotaPage() {
 
             {/* ─────────────── NOTA UTAMA ─────────────── */}
             <div className="doc-half">
-              {/* HEADER */}
-              <div className="flex justify-between items-start mb-2">
-                <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                  <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                    <img src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" style={{ width: "42px", height: "auto", display: "block" }} />
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="header-title">CV. SINAR ILMU JAYA</div>
-                    <div className="header-sub">Percetakan - Digital Printing - Souvenir</div>
-                    <div className="header-small mt-1">Jl. Kapas Tengah II Blok F No.721 / 0822 30563792</div>
-                  </div>
-                </div>
-                <div style={{ width: "26%", textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: "8pt", color: "#555" }}>TANGGAL</div>
-                  <div className="font-bold mb-2" style={{ fontSize: "9.5pt" }}>{fmtDate(tanggal)}</div>
-                  <div style={{ fontSize: "8pt", color: "#555" }}>KEPADA YTH.</div>
-                  <div className="font-bold text-black" style={{ fontSize: "9.5pt", minHeight: "18px" }}>{namaCustomer || "-"}</div>
-                </div>
-              </div>
+              <DocumentHeader
+                documentTitle="NOTA"
+                noDokumen={noDokumen || "-"}
+                tanggalStr={fmtDate(tanggal)}
+                namaCustomer={namaCustomer || "-"}
+                recipientLabel="KEPADA YTH."
+                layoutType="split_header"
+              />
 
-              <div className="w-full" style={{ height: "2px", background: "#1e3a8a", margin: "6px 0 8px" }} />
+              <DocumentTable
+                mode="nota"
+                items={items}
+                minRows={5}
+                showTerbilang={true}
+                terbilangKapital={false}
+                terbilangStyle="default"
+              />
 
-              <div className="flex items-end mb-2">
-                <span style={{ background: "#1e3a8a", color: "white", padding: "2px 8px", fontWeight: "bold", fontSize: "9pt", borderRadius: "2px" }}>NOTA</span>
-                <span style={{ fontWeight: "bold", fontSize: "10.5pt", marginLeft: "8px", fontFamily: "monospace" }}>{noDokumen}</span>
-              </div>
-
-              {/* TABEL */}
-              <table className="nota-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: "28px" }}>NO</th>
-                    <th style={{ textAlign: "left" }}>NAMA BARANG</th>
-                    <th style={{ width: "55px" }}>VOLUME</th>
-                    <th style={{ width: "105px" }}>HARGA</th>
-                    <th style={{ width: "130px" }}>JUMLAH</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={idx}>
-                      <td style={{ textAlign: "center" }}>{idx + 1}</td>
-                      <td>{item.namaBarang}</td>
-                      <td style={{ textAlign: "center" }}>{item.qty}</td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{formatRp(item.hargaSatuan)}</td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{formatRp(item.totalHarga)}</td>
-                    </tr>
-                  ))}
-                  {/* Padding baris kosong — minimal 5 baris (sesuai v8) */}
-                  {Array.from({ length: Math.max(0, 5 - items.length) }).map((_, k) => (
-                    <tr key={`e-${k}`}>
-                      <td>&nbsp;</td><td /><td /><td /><td />
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: "right" }}>TOTAL</td>
-                    <td style={{ textAlign: "right", fontSize: "11pt", whiteSpace: "nowrap" }}>Rp {formatRp(total)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-
-              <div style={{ fontSize: "8.5pt" }}>
-                <b>Keterangan :</b><br />
-                <b>Terbilang :</b> <span style={{ fontStyle: "italic" }}>{terbilang(total)}</span>
-              </div>
-
-              {/* FOOTER: pembayaran + tanda tangan */}
-              <div className="flex mt-6" style={{ fontSize: "8.5pt" }}>
-                <div style={{ width: "55%", paddingRight: "10px" }}>
-                  <div style={{ borderBottom: "1px solid #ddd", paddingBottom: "4px", marginBottom: "4px", fontWeight: "bold" }}>Info Pembayaran:</div>
-                  <div>Transfer Via BCA</div>
-                  <div className="font-bold" style={{ color: "#1e3a8a" }}>a/n MUHTARUDIN NURUL HABIBI</div>
-                  <div className="font-mono text-xs mt-1">No. 009-7085-203</div>
-                </div>
-                <div style={{ width: "45%", display: "flex", justifyContent: "space-between" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ marginBottom: "40px" }}>Diterima oleh,</div>
-                    <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>( ................. )</div>
-                  </div>
-                  <div style={{ textAlign: "center", position: "relative", minWidth: "120px", marginRight: "14px" }}>
-                    <div style={{ marginBottom: "40px" }}>Hormat kami,</div>
-                    {sertakanStempel && (
-                      <img
-                        src="/stempel.png"
-                        alt="Stempel CV Sinar Ilmu Jaya"
-                        style={{
-                          position: "absolute",
-                          left: "calc(50% - 14px)",
-                          top: "16px",
-                          transform: "translateX(-50%) rotate(-6deg)",
-                          width: "155px",
-                          maxWidth: "none",
-                          height: "auto",
-                          pointerEvents: "none",
-                          zIndex: 1,
-                        }}
-                      />
-                    )}
-                    <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>( Habibi )</div>
-                  </div>
-                </div>
-              </div>
+              <DocumentSignature variant="nota" sertakanStempel={sertakanStempel} />
             </div>
 
             {/* ─────────────── KWITANSI ─────────────── */}
@@ -930,90 +848,25 @@ export default function NotaPage() {
             {/* ─────────────── NOTA KEDUA ─────────────── */}
             {bottomMode === "nota2" && (
               <div className="doc-half kwitansi-half">
-                <div className="flex justify-between items-start mb-2">
-                  <div style={{ width: "74%", display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                    <div style={{ flexShrink: 0, marginTop: "2px" }}>
-                      <img src="/logo.png" alt="Logo CV Sinar Ilmu Jaya" style={{ width: "42px", height: "auto", display: "block" }} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div className="header-title">CV. SINAR ILMU JAYA</div>
-                      <div className="header-sub">Percetakan - Digital Printing - Souvenir</div>
-                      <div className="header-small mt-1">Jl. Kapas Tengah II Blok F No.721 / 0822 30563792</div>
-                    </div>
-                  </div>
-                  <div style={{ width: "26%", textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: "8pt", color: "#555" }}>TANGGAL</div>
-                    <div className="font-bold mb-2" style={{ fontSize: "9.5pt" }}>{fmtDate(tanggal2)}</div>
-                    <div style={{ fontSize: "8pt", color: "#555" }}>KEPADA YTH.</div>
-                    <div className="font-bold text-black" style={{ fontSize: "9.5pt", minHeight: "18px" }}>{namaCustomer2 || "-"}</div>
-                  </div>
-                </div>
+                <DocumentHeader
+                  documentTitle="NOTA"
+                  noDokumen={noDokumen2 || "-"}
+                  tanggalStr={fmtDate(tanggal2)}
+                  namaCustomer={namaCustomer2 || "-"}
+                  recipientLabel="KEPADA YTH."
+                  layoutType="split_header"
+                />
 
-                <div className="w-full" style={{ height: "2px", background: "#1e3a8a", margin: "6px 0 8px" }} />
+                <DocumentTable
+                  mode="nota"
+                  items={items2}
+                  minRows={3}
+                  showTerbilang={true}
+                  terbilangKapital={false}
+                  terbilangStyle="default"
+                />
 
-                <div className="flex items-end mb-2">
-                  <span style={{ background: "#1e3a8a", color: "white", padding: "2px 8px", fontWeight: "bold", fontSize: "9pt", borderRadius: "2px" }}>NOTA</span>
-                  <span style={{ fontWeight: "bold", fontSize: "10.5pt", marginLeft: "8px", fontFamily: "monospace" }}>{noDokumen2}</span>
-                </div>
-
-                <table className="nota-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: "28px" }}>NO</th>
-                      <th style={{ textAlign: "left" }}>NAMA BARANG</th>
-                      <th style={{ width: "55px" }}>VOLUME</th>
-                      <th style={{ width: "105px" }}>HARGA</th>
-                      <th style={{ width: "130px" }}>JUMLAH</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items2.map((item, idx) => (
-                      <tr key={idx}>
-                        <td style={{ textAlign: "center" }}>{idx + 1}</td>
-                        <td>{item.namaBarang}</td>
-                        <td style={{ textAlign: "center" }}>{item.qty}</td>
-                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{formatRp(item.hargaSatuan)}</td>
-                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>{formatRp(item.totalHarga)}</td>
-                      </tr>
-                    ))}
-                    {/* Padding baris kosong — minimal 3 baris (sesuai v8) */}
-                    {Array.from({ length: Math.max(0, 3 - items2.length) }).map((_, k) => (
-                      <tr key={`e2-${k}`}>
-                        <td>&nbsp;</td><td /><td /><td /><td />
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={4} style={{ textAlign: "right" }}>TOTAL</td>
-                      <td style={{ textAlign: "right", fontSize: "11pt", whiteSpace: "nowrap" }}>Rp {formatRp(total2)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-
-                <div style={{ fontSize: "8.5pt" }}>
-                  <b>Keterangan :</b><br />
-                  <b>Terbilang :</b> <span style={{ fontStyle: "italic" }}>{terbilang(total2)}</span>
-                </div>
-
-                <div className="flex mt-6" style={{ fontSize: "8.5pt" }}>
-                  <div style={{ width: "55%", paddingRight: "10px" }}>
-                    <div style={{ borderBottom: "1px solid #ddd", paddingBottom: "4px", marginBottom: "4px", fontWeight: "bold" }}>Info Pembayaran:</div>
-                    <div>Transfer Via BCA</div>
-                    <div className="font-bold" style={{ color: "#1e3a8a" }}>a/n MUHTARUDIN NURUL HABIBI</div>
-                    <div className="font-mono text-xs mt-1">No. 009-7085-203</div>
-                  </div>
-                  <div style={{ width: "45%", display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ marginBottom: "40px" }}>Diterima oleh,</div>
-                      <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>( ................. )</div>
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ marginBottom: "40px" }}>Hormat kami,</div>
-                      <div style={{ borderTop: "1px solid #aaa", paddingTop: "2px", fontWeight: "bold" }}>&nbsp;</div>
-                    </div>
-                  </div>
-                </div>
+                <DocumentSignature variant="nota" sertakanStempel={sertakanStempel} />
               </div>
             )}
 
