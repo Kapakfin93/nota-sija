@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react";
-
 interface DocumentSignatureProps {
   variant: "nota" | "orderan";
   tanggalStr?: string;

@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
 import { terbilang } from "../../lib/services/terbilang";
+import { formatAngkaId, formatVolume } from "../../lib/services/documentNumber";
 import { ItemBarang } from "../../lib/types/transaksi";
 
 interface DocumentTableProps {
@@ -22,10 +22,11 @@ export function DocumentTable({
   terbilangStyle = "default",
 }: DocumentTableProps) {
   const grandTotal = items.reduce(
-    (s, i) => s + (i.totalHarga || i.qty * i.hargaSatuan || 0),
+    (s, i) => s + (Number(i.totalHarga) || (Number(i.qty) * Number(i.hargaSatuan)) || 0),
     0
   );
-  const formatRp = (n: number) => n.toLocaleString("id-ID");
+  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
+
 
   const emptyRowCount = Math.max(0, minRows - items.length);
 
@@ -37,7 +38,7 @@ export function DocumentTable({
             <tr>
               <th style={{ width: "28px" }}>NO</th>
               <th style={{ textAlign: "left" }}>NAMA BARANG</th>
-              <th style={{ width: "55px" }}>VOLUME</th>
+              <th style={{ width: "75px" }}>VOLUME</th>
               <th style={{ width: "105px" }}>HARGA</th>
               <th style={{ width: "130px" }}>JUMLAH</th>
             </tr>
@@ -57,7 +58,11 @@ export function DocumentTable({
             <tr key={idx}>
               <td style={{ textAlign: "center" }}>{idx + 1}</td>
               <td>{item.namaBarang}</td>
-              <td style={{ textAlign: "center" }}>{item.qty}</td>
+              <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                {mode === "nota"
+                  ? formatVolume(item.qty, item.satuan)
+                  : formatAngkaId(item.qty)}
+              </td>
               {mode === "orderan" && (
                 <td style={{ textAlign: "center" }}>{item.satuan || "-"}</td>
               )}

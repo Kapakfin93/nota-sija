@@ -3,16 +3,23 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { terbilang } from "../../lib/services/terbilang";
-import { generateNoDokumen, formatPdfFileName, updateNoDokumenTanggal } from "../../lib/services/documentNumber";
-import { DocumentHeader } from "../../components/print/DocumentHeader";
-import { DocumentTable } from "../../components/print/DocumentTable";
-import { DocumentSignature } from "../../components/print/DocumentSignature";
+import {
+  generateNoDokumen,
+  formatPdfFileName,
+  updateNoDokumenTanggal,
+  formatRupiahInput,
+  parseRupiahInput,
+} from "../../lib/services/documentNumber";
+import {
+  DocumentHeader,
+  DocumentTable,
+  DocumentSignature,
+} from "../../components/print";
 import { OrderanService } from "../../lib/services/orderanService";
-import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
+import { HybridRepository } from "../../lib/repositories/hybridRepository";
 import { ItemBarang } from "../../lib/types/transaksi";
 
-const _repo = new LocalStorageRepository();
+const _repo = new HybridRepository();
 const orderanService = new OrderanService(_repo);
 
 const DRAFT_STORAGE_KEY = "eOrderanDraft";
@@ -27,6 +34,21 @@ function fmtDate(dateStr: string): string {
 
 function todayStr(): string {
   return new Date().toISOString().split("T")[0];
+}
+
+const SATUAN_OPSI = ["pcs", "rim", "lembar", "unit", "M2", "buku"];
+
+function normalizeItem(raw: any): ItemBarang {
+  const qty = Number(raw?.qty ?? raw?.volume ?? 1) || 1;
+  const hargaSatuan = Number(raw?.hargaSatuan ?? raw?.harga ?? 0) || 0;
+  const totalHarga = Number(raw?.totalHarga ?? (qty * hargaSatuan)) || (qty * hargaSatuan);
+  return {
+    namaBarang: String(raw?.namaBarang || raw?.barang || "").trim(),
+    qty,
+    satuan: raw?.satuan ? String(raw.satuan).trim() : undefined,
+    hargaSatuan,
+    totalHarga,
+  };
 }
 
 export default function OrderanPage() {
@@ -48,7 +70,7 @@ export default function OrderanPage() {
   const [itemName, setItemName] = useState("");
   const [itemQty, setItemQty] = useState<number | "">("");
   const [itemSatuan, setItemSatuan] = useState("");
-  const [itemPrice, setItemPrice] = useState<number | "">("");
+  const [itemPrice, setItemPrice] = useState<string>("");
   const [editIdx, setEditIdx] = useState<number | null>(null);
 
   // Mobile Tabs & Scaling
@@ -61,15 +83,16 @@ export default function OrderanPage() {
       const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        setNoDokumen(d.no || generateNoDokumen());
-        setTanggal(d.date || todayStr());
-        setNamaCustomer(d.cust || "");
-        setDeskripsi(d.desk || "");
-        setWaktuPengerjaan(d.kerja || "");
-        setWaktuPengiriman(d.kirim || "");
+        setNoDokumen(d.no || d.noDokumen || generateNoDokumen());
+        setTanggal(d.date || d.tanggal || todayStr());
+        setNamaCustomer(d.cust || d.customer || d.namaCustomer || "");
+        setDeskripsi(d.desk || d.deskripsi || "");
+        setWaktuPengerjaan(d.kerja || d.waktuPengerjaan || "");
+        setWaktuPengiriman(d.kirim || d.waktuPengiriman || "");
         setFileLabel(d.fileLabel || "");
-        setSertakanStempel(Boolean(d.sertakanStempel));
-        setItems(d.items || []);
+        setSertakanStempel(Boolean(d.sertakanStempel || d.showStempel));
+        const loadedItems = Array.isArray(d.items) ? d.items.map(normalizeItem) : [];
+        setItems(loadedItems);
       } else {
         setNoDokumen(generateNoDokumen());
         setTanggal(todayStr());
@@ -82,6 +105,7 @@ export default function OrderanPage() {
     }
     setIsLoaded(true);
   }, []);
+
 
   // 2. Simpan Draft form setiap kali ada perubahan
   useEffect(() => {
@@ -106,8 +130,8 @@ export default function OrderanPage() {
     }
   }, [isLoaded, noDokumen, tanggal, namaCustomer, deskripsi, waktuPengerjaan, waktuPengiriman, fileLabel, sertakanStempel, items]);
 
-  const total = items.reduce((s, i) => s + (i.totalHarga || i.qty * i.hargaSatuan), 0);
-  const formatRp = (n: number) => n.toLocaleString("id-ID");
+  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
+
 
   const dynamicFileName = formatPdfFileName({
     customLabel: fileLabel || namaCustomer,
@@ -121,7 +145,7 @@ export default function OrderanPage() {
       return;
     }
     const q = Number(itemQty) || 1;
-    const p = Number(itemPrice) || 0;
+    const p = parseRupiahInput(itemPrice);
     const newItem: ItemBarang = {
       namaBarang: itemName.trim(),
       qty: q,
@@ -150,7 +174,7 @@ export default function OrderanPage() {
     setItemName(d.namaBarang);
     setItemQty(d.qty);
     setItemSatuan(d.satuan || "");
-    setItemPrice(d.hargaSatuan);
+    setItemPrice(formatRupiahInput(d.hargaSatuan));
     setEditIdx(idx);
   };
 
@@ -183,21 +207,40 @@ export default function OrderanPage() {
     cancelEdit();
   };
 
-  // Finalisasi: Simpan ke repository universal (eSijaTransaksi) lalu buka /orderan/print
+  // Finalisasi: Validasi, konfirmasi simpan ke repository lalu buka /orderan/print
   const handlePrint = async () => {
-    try {
-      await orderanService.buatSuratOrderan({
-        noDokumen,
-        tanggalDokumen: fmtDate(tanggal),
-        namaCustomer: namaCustomer.trim() || "-",
-        deskripsi: deskripsi.trim() || "-",
-        waktuPengerjaan: waktuPengerjaan.trim() || "-",
-        waktuPengiriman: waktuPengiriman.trim() || "-",
-        items,
-      });
-    } catch (e) {
-      console.error("[OrderanService] Gagal simpan orderan:", e);
+    // 1. Validasi Input Kredibilitas Data
+    if (!namaCustomer.trim()) {
+      alert("Nama Pelanggan belum diisi. Mohon lengkapi sebelum melanjutkan.");
+      return;
     }
+    if (items.length === 0) {
+      alert("Daftar item pekerjaan masih kosong. Mohon tambahkan minimal 1 item.");
+      return;
+    }
+
+    // 2. Validasi Opsi Simpan ke Arsip
+    const simpanKeArsip = window.confirm(
+      "Apakah Anda ingin menyimpan Surat Orderan ini ke Buku Arsip Bulanan?\n\n• [OK] = Simpan ke Arsip & Buka Cetak\n• [Cancel] = Cetak Saja (Tanpa Simpan ke Arsip)"
+    );
+
+    if (simpanKeArsip) {
+      try {
+        await orderanService.buatSuratOrderan({
+          noDokumen,
+          tanggalDokumen: fmtDate(tanggal),
+          namaCustomer: namaCustomer.trim() || "-",
+          deskripsi: deskripsi.trim() || "-",
+          waktuPengerjaan: waktuPengerjaan.trim() || "-",
+          waktuPengiriman: waktuPengiriman.trim() || "-",
+          items,
+        });
+      } catch (e) {
+        console.error("[OrderanService] Gagal simpan orderan:", e);
+        alert("Peringatan: Gagal menyimpan ke arsip cloud. Dokumen tetap dicetak.");
+      }
+    }
+
     router.push("/orderan/print");
   };
 
@@ -216,9 +259,16 @@ export default function OrderanPage() {
         {/* Header sticky */}
         <div className="p-4 sticky top-0 z-10 shadow-md flex justify-between items-center text-white bg-blue-900">
           <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className="text-xs bg-emerald-600/80 hover:bg-emerald-600 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95 text-white font-medium shadow-xs"
+            >
+              <i className="fa-solid fa-chart-line" /> Dashboard
+            </Link>
             <Link href="/nota" className="text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded flex items-center gap-1">
               <i className="fa-solid fa-receipt" /> Nota
             </Link>
+
             <h1 className="font-bold text-base sm:text-lg truncate">
               <i className="fa-solid fa-file-signature mr-1" /> Surat Orderan
             </h1>
@@ -349,28 +399,54 @@ export default function OrderanPage() {
               className="w-full mb-2 p-2 border border-gray-300 rounded text-sm outline-none"
               placeholder="Uraian Barang / Jasa..."
             />
-            <div className="flex gap-2 mb-2">
-              <input
-                type="number"
-                value={itemQty}
-                onChange={(e) => setItemQty(e.target.value ? Number(e.target.value) : "")}
-                className="w-16 p-2 border border-gray-300 rounded text-sm text-center"
-                placeholder="Qty"
-              />
-              <input
-                type="text"
-                value={itemSatuan}
-                onChange={(e) => setItemSatuan(e.target.value)}
-                className="w-20 p-2 border border-gray-300 rounded text-sm text-center"
-                placeholder="Satuan"
-              />
-              <input
-                type="number"
-                value={itemPrice}
-                onChange={(e) => setItemPrice(e.target.value ? Number(e.target.value) : "")}
-                className="flex-1 p-2 border border-gray-300 rounded text-sm text-right"
-                placeholder="Harga Satuan"
-              />
+            <div className="grid grid-cols-12 gap-2 mb-2">
+              <div className="col-span-3">
+                <input
+                  type="number"
+                  step="any"
+                  value={itemQty}
+                  onChange={(e) => setItemQty(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-center outline-none focus:border-blue-900"
+                  placeholder="Qty"
+                />
+              </div>
+              <div className="col-span-4">
+                <input
+                  type="text"
+                  value={itemSatuan}
+                  onChange={(e) => setItemSatuan(e.target.value)}
+                  className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-center outline-none focus:border-blue-900"
+                  placeholder="Satuan"
+                />
+              </div>
+              <div className="col-span-5">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={itemPrice}
+                  onChange={(e) => setItemPrice(formatRupiahInput(e.target.value))}
+                  className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-right outline-none focus:border-blue-900 font-mono"
+                  placeholder="Harga (Rp)"
+                />
+              </div>
+            </div>
+            {/* Quick Toggle Pills Satuan */}
+            <div className="flex flex-wrap gap-1 mb-2 items-center">
+              <span className="text-[10px] text-gray-500 font-semibold mr-0.5">Satuan:</span>
+              {SATUAN_OPSI.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setItemSatuan(itemSatuan === s ? "" : s)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition ${
+                    itemSatuan === s
+                      ? "bg-blue-900 text-white border-blue-900 shadow-sm"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-blue-50"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
             <div className="flex gap-2">
               <button

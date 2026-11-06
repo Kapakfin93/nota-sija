@@ -3,20 +3,27 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { terbilang } from "../../lib/services/terbilang";
-import { generateNoDokumen, formatPdfFileName, updateNoDokumenTanggal } from "../../lib/services/documentNumber";
-import { KwitansiBlock } from "../../components/print/KwitansiBlock";
-import { DocumentHeader } from "../../components/print/DocumentHeader";
-import { DocumentTable } from "../../components/print/DocumentTable";
-import { DocumentSignature } from "../../components/print/DocumentSignature";
+import {
+  generateNoDokumen,
+  formatPdfFileName,
+  updateNoDokumenTanggal,
+  formatRupiahInput,
+  parseRupiahInput,
+} from "../../lib/services/documentNumber";
+import {
+  DocumentHeader,
+  DocumentTable,
+  DocumentSignature,
+  KwitansiBlock,
+} from "../../components/print";
 import { NotaService } from "../../lib/services/notaService";
 import { OrderanService } from "../../lib/services/orderanService";
-import { LocalStorageRepository } from "../../lib/repositories/localStorageRepository";
+import { HybridRepository } from "../../lib/repositories/hybridRepository";
 import { ItemBarang, Transaksi } from "../../lib/types/transaksi";
 
 // --- Module-level singleton: satu instance per session browser ---
 // Sesuai 3-layer: Presentation layer hanya boleh panggil Service, tidak repo langsung.
-const _repo = new LocalStorageRepository();
+const _repo = new HybridRepository();
 const notaService = new NotaService(_repo);
 const orderanService = new OrderanService(_repo);
 
@@ -52,6 +59,21 @@ function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+const SATUAN_OPSI = ["pcs", "rim", "lembar", "unit", "M2", "buku"];
+
+function normalizeItem(raw: any): ItemBarang {
+  const qty = Number(raw?.qty ?? raw?.volume ?? 1) || 1;
+  const hargaSatuan = Number(raw?.hargaSatuan ?? raw?.harga ?? 0) || 0;
+  const totalHarga = Number(raw?.totalHarga ?? (qty * hargaSatuan)) || (qty * hargaSatuan);
+  return {
+    namaBarang: String(raw?.namaBarang || raw?.barang || "").trim(),
+    qty,
+    satuan: raw?.satuan ? String(raw.satuan).trim() : undefined,
+    hargaSatuan,
+    totalHarga,
+  };
+}
+
 export default function NotaPage() {
   const router = useRouter();
   // ─── State ───────────────────────────────────────────────────────────────
@@ -74,7 +96,8 @@ export default function NotaPage() {
   const [items, setItems] = useState<ItemBarang[]>([]);
   const [itemName, setItemName] = useState("");
   const [itemQty, setItemQty] = useState<number | "">("");
-  const [itemPrice, setItemPrice] = useState<number | "">("");
+  const [itemSatuan, setItemSatuan] = useState("");
+  const [itemPrice, setItemPrice] = useState<string>("");
   const [editIdx, setEditIdx] = useState<number | null>(null); // null = mode tambah
 
   // Nota 2
@@ -84,7 +107,8 @@ export default function NotaPage() {
   const [items2, setItems2] = useState<ItemBarang[]>([]);
   const [item2Name, setItem2Name] = useState("");
   const [item2Qty, setItem2Qty] = useState<number | "">("");
-  const [item2Price, setItem2Price] = useState<number | "">("");
+  const [item2Satuan, setItem2Satuan] = useState("");
+  const [item2Price, setItem2Price] = useState<string>("");
   const [editIdx2, setEditIdx2] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState("input");
@@ -96,20 +120,22 @@ export default function NotaPage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        setItems(d.items || []);
-        setNoDokumen(d.no || generateNoDokumen());
-        setTanggal(d.date || todayStr());
-        setNamaCustomer(d.cust || "");
+        const loadedItems = Array.isArray(d.items) ? d.items.map(normalizeItem) : [];
+        setItems(loadedItems);
+        setNoDokumen(d.no || d.noDokumen || generateNoDokumen());
+        setTanggal(d.date || d.tanggal || todayStr());
+        setNamaCustomer(d.cust || d.customer || d.namaCustomer || "");
         setFileLabel(d.fileLabel || "");
         // Kompatibel data lama (field 'kwitansi' boolean dari versi sebelumnya)
         const mode = d.bottomMode || (d.kwitansi ? "kwitansi" : "none");
         setBottomMode(mode);
-        setKetKwitansi(d.ket || "");
-        setSertakanStempel(Boolean(d.sertakanStempel));
-        setItems2(d.items2 || []);
-        setNoDokumen2(d.no2 || generateNoDokumen());
-        setTanggal2(d.date2 || todayStr());
-        setNamaCustomer2(d.cust2 || "");
+        setKetKwitansi(d.ket || d.kwitansiKet || d.keteranganKwitansi || "");
+        setSertakanStempel(Boolean(d.sertakanStempel || d.showStempel));
+        const loadedItems2 = Array.isArray(d.items2) ? d.items2.map(normalizeItem) : [];
+        setItems2(loadedItems2);
+        setNoDokumen2(d.no2 || d.noDokumen2 || generateNoDokumen());
+        setTanggal2(d.date2 || d.tanggal2 || todayStr());
+        setNamaCustomer2(d.cust2 || d.customer2 || d.namaCustomer2 || "");
       } else {
         // Nota baru — generate nomor pertama kali
         setNoDokumen(generateNoDokumen());
@@ -130,6 +156,7 @@ export default function NotaPage() {
     }
     setIsLoaded(true);
   }, []);
+
 
   // ─── Simpan ke localStorage setiap kali state berubah (setelah load) ─────
   useEffect(() => {
@@ -157,10 +184,13 @@ export default function NotaPage() {
   ]);
 
   // ─── Derived ──────────────────────────────────────────────────────────────
-  const total = items.reduce((s, i) => s + i.totalHarga, 0);
-  const total2 = items2.reduce((s, i) => s + i.totalHarga, 0);
+  const total = items.reduce(
+    (s, i) => s + (Number(i.totalHarga) || (Number(i.qty) * Number(i.hargaSatuan)) || 0),
+    0
+  );
 
-  const formatRp = (n: number) => n.toLocaleString("id-ID");
+  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
+
 
   // Nama file PDF dinamis: sija-[label]-[nomor]. Digunakan untuk <title> dan "Save as PDF"
   const dynamicFileName = formatPdfFileName({
@@ -197,20 +227,23 @@ export default function NotaPage() {
     setKetKwitansi("");
     // Clear form draft
     setEditIdx(null);
-    setItemName(""); setItemQty(""); setItemPrice("");
+    setItemName(""); setItemQty(""); setItemSatuan(""); setItemPrice("");
     setEditIdx2(null);
-    setItem2Name(""); setItem2Qty(""); setItem2Price("");
+    setItem2Name(""); setItem2Qty(""); setItem2Satuan(""); setItem2Price("");
     localStorage.removeItem(STORAGE_KEY);
   };
 
   // ─── CRUD Items — Nota 1 ──────────────────────────────────────────────────
   const addItem = () => {
-    if (!itemName || itemQty === "" || itemPrice === "") return;
+    const hargaNum = parseRupiahInput(itemPrice);
+    if (!itemName.trim() || itemQty === "" || hargaNum <= 0) return;
+    const q = Number(itemQty) || 1;
     const newItem: ItemBarang = {
-      namaBarang: itemName,
-      qty: Number(itemQty),
-      hargaSatuan: Number(itemPrice),
-      totalHarga: Number(itemQty) * Number(itemPrice),
+      namaBarang: itemName.trim(),
+      qty: q,
+      satuan: itemSatuan.trim() || undefined,
+      hargaSatuan: hargaNum,
+      totalHarga: q * hargaNum,
     };
     if (editIdx !== null) {
       // Mode edit: replace item di posisi yang sama
@@ -220,7 +253,7 @@ export default function NotaPage() {
       cancelEdit();
     } else {
       setItems([...items, newItem]);
-      setItemName(""); setItemQty(""); setItemPrice("");
+      setItemName(""); setItemQty(""); setItemSatuan(""); setItemPrice("");
     }
   };
 
@@ -229,13 +262,14 @@ export default function NotaPage() {
     const d = items[i];
     setItemName(d.namaBarang);
     setItemQty(d.qty);
-    setItemPrice(d.hargaSatuan);
+    setItemSatuan(d.satuan || "");
+    setItemPrice(formatRupiahInput(d.hargaSatuan));
     setEditIdx(i);
   };
 
   const cancelEdit = () => {
     setEditIdx(null);
-    setItemName(""); setItemQty(""); setItemPrice("");
+    setItemName(""); setItemQty(""); setItemSatuan(""); setItemPrice("");
   };
 
   const removeItem = (i: number) => {
@@ -248,12 +282,15 @@ export default function NotaPage() {
 
   // ─── CRUD Items — Nota 2 ──────────────────────────────────────────────────
   const addItem2 = () => {
-    if (!item2Name || item2Qty === "" || item2Price === "") return;
+    const hargaNum = parseRupiahInput(item2Price);
+    if (!item2Name.trim() || item2Qty === "" || hargaNum <= 0) return;
+    const q = Number(item2Qty) || 1;
     const newItem: ItemBarang = {
-      namaBarang: item2Name,
-      qty: Number(item2Qty),
-      hargaSatuan: Number(item2Price),
-      totalHarga: Number(item2Qty) * Number(item2Price),
+      namaBarang: item2Name.trim(),
+      qty: q,
+      satuan: item2Satuan.trim() || undefined,
+      hargaSatuan: hargaNum,
+      totalHarga: q * hargaNum,
     };
     if (editIdx2 !== null) {
       const updated = [...items2];
@@ -262,7 +299,7 @@ export default function NotaPage() {
       cancelEdit2();
     } else {
       setItems2([...items2, newItem]);
-      setItem2Name(""); setItem2Qty(""); setItem2Price("");
+      setItem2Name(""); setItem2Qty(""); setItem2Satuan(""); setItem2Price("");
     }
   };
 
@@ -271,13 +308,14 @@ export default function NotaPage() {
     const d = items2[i];
     setItem2Name(d.namaBarang);
     setItem2Qty(d.qty);
-    setItem2Price(d.hargaSatuan);
+    setItem2Satuan(d.satuan || "");
+    setItem2Price(formatRupiahInput(d.hargaSatuan));
     setEditIdx2(i);
   };
 
   const cancelEdit2 = () => {
     setEditIdx2(null);
-    setItem2Name(""); setItem2Qty(""); setItem2Price("");
+    setItem2Name(""); setItem2Qty(""); setItem2Satuan(""); setItem2Price("");
   };
 
   const removeItem2 = (i: number) => {
@@ -326,9 +364,25 @@ export default function NotaPage() {
     setSourceOrderanNo(null);
   };
 
-  // ─── Print: upsert ke repository dengan nomor yang SUDAH ADA & redirect ke /nota/print ───
+  // ─── Print: validasi input, konfirmasi simpan, upsert ke repository & redirect ke /nota/print ───
   const handlePrint = async () => {
-    // 1. Simpan state terkini ke localStorage secara sinkron sebelum navigasi
+    // 1. Validasi Input Kredibilitas Data
+    if (!namaCustomer.trim()) {
+      alert("Nama Customer belum diisi. Mohon lengkapi sebelum melanjutkan.");
+      return;
+    }
+    if (items.length === 0) {
+      alert("Daftar barang masih kosong. Mohon tambahkan minimal 1 barang.");
+      return;
+    }
+    if (bottomMode === "nota2" && items2.length === 0) {
+      const lanjut = window.confirm(
+        "Mode 'Nota Kedua' aktif tetapi barang di Nota Kedua masih kosong.\nLanjutkan cetak?"
+      );
+      if (!lanjut) return;
+    }
+
+    // 2. Simpan state terkini ke localStorage secara sinkron sebelum navigasi
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -351,26 +405,49 @@ export default function NotaPage() {
       console.error("Gagal simpan ke localStorage:", e);
     }
 
-    // 2. Simpan ke service
-    try {
-      // Option B: Transisi status Orderan ("berjalan" -> "tertagih") HANYA terjadi saat print/finalisasi nota
-      if (sourceOrderanNo) {
-        await orderanService.terbitkanNotaDariOrderan(sourceOrderanNo);
-      }
+    // 3. Validasi Opsi Simpan ke Arsip (Google Sheets & Local Ledger)
+    const simpanKeArsip = window.confirm(
+      "Apakah Anda ingin menyimpan transaksi ini ke Buku Arsip Bulanan?\n\n• [OK] = Simpan ke Arsip & Buka Cetak\n• [Cancel] = Cetak Saja (Tanpa Simpan ke Arsip)"
+    );
 
-      await notaService.simpanTransaksiSaatIni({
-        noDokumen,                              // nomor dari UI state (tidak berubah)
-        tanggalDokumen: fmtDate(tanggal),
-        namaCustomer,
-        items,
-        modeBagianBawah: toModeBagianBawah(bottomMode),
-        keteranganKwitansi: ketKwitansi,
-      });
-    } catch (e) {
-      console.error("[notaService] Gagal simpan sebelum print:", e);
+    if (simpanKeArsip) {
+      try {
+        // Option B: Transisi status Orderan ("berjalan" -> "tertagih") HANYA terjadi saat print/finalisasi nota
+        if (sourceOrderanNo) {
+          await orderanService.terbitkanNotaDariOrderan(sourceOrderanNo);
+        }
+
+        // Simpan Nota Utama (Atas)
+        await notaService.simpanTransaksiSaatIni({
+          noDokumen,
+          tanggalDokumen: fmtDate(tanggal),
+          namaCustomer,
+          items,
+          modeBagianBawah: toModeBagianBawah(bottomMode),
+          keteranganKwitansi:
+            bottomMode === "nota2"
+              ? `Pasangan Cetak A4: ${noDokumen2 || "-"}`
+              : ketKwitansi,
+        });
+
+        // Jika mode nota2 aktif dan ada item di nota kedua, simpan Nota Kedua juga sebagai transaksi independen
+        if (bottomMode === "nota2" && items2.length > 0) {
+          await notaService.simpanTransaksiSaatIni({
+            noDokumen: noDokumen2,
+            tanggalDokumen: fmtDate(tanggal2),
+            namaCustomer: namaCustomer2.trim() || namaCustomer,
+            items: items2,
+            modeBagianBawah: "nota_kedua",
+            keteranganKwitansi: `Pasangan Cetak A4: ${noDokumen}`,
+          });
+        }
+      } catch (e) {
+        console.error("[notaService] Gagal simpan ke arsip:", e);
+        alert("Peringatan: Gagal menyimpan ke arsip cloud. Dokumen tetap dicetak.");
+      }
     }
 
-    // 3. Approach B: Beralih ke halaman cetak murni tanpa UI input
+    // 4. Beralih ke halaman cetak murni tanpa UI input
     router.push("/nota/print");
   };
 
@@ -396,11 +473,18 @@ export default function NotaPage() {
               <i className="fa-solid fa-pen-to-square mr-1" /> Input Nota
             </h1>
             <Link
+              href="/dashboard"
+              className="text-xs bg-emerald-600/80 hover:bg-emerald-600 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95 text-white font-medium shadow-xs"
+            >
+              <i className="fa-solid fa-chart-line" /> Dashboard
+            </Link>
+            <Link
               href="/orderan"
               className="text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95"
             >
               <i className="fa-solid fa-file-signature" /> Orderan
             </Link>
+
           </div>
           <button
             onClick={resetAll}
@@ -611,19 +695,54 @@ export default function NotaPage() {
                   className="w-full mb-2 p-2 border border-gray-300 rounded text-sm outline-none"
                   placeholder="Nama Barang..."
                 />
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="number" value={item2Qty}
-                    onChange={(e) => setItem2Qty(e.target.value ? Number(e.target.value) : "")}
-                    className="w-20 p-2 border border-gray-300 rounded text-sm text-center"
-                    placeholder="Qty"
-                  />
-                  <input
-                    type="number" value={item2Price}
-                    onChange={(e) => setItem2Price(e.target.value ? Number(e.target.value) : "")}
-                    className="flex-1 p-2 border border-gray-300 rounded text-sm text-right"
-                    placeholder="Harga Satuan"
-                  />
+                <div className="grid grid-cols-12 gap-2 mb-2">
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      step="any"
+                      value={item2Qty}
+                      onChange={(e) => setItem2Qty(e.target.value ? Number(e.target.value) : "")}
+                      className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-center outline-none focus:border-orange-500"
+                      placeholder="Qty"
+                    />
+                  </div>
+                  <div className="col-span-4">
+                    <input
+                      type="text"
+                      value={item2Satuan}
+                      onChange={(e) => setItem2Satuan(e.target.value)}
+                      className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-center outline-none focus:border-orange-500"
+                      placeholder="Satuan"
+                    />
+                  </div>
+                  <div className="col-span-5">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={item2Price}
+                      onChange={(e) => setItem2Price(formatRupiahInput(e.target.value))}
+                      className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-right outline-none focus:border-orange-500 font-mono"
+                      placeholder="Harga (Rp)"
+                    />
+                  </div>
+                </div>
+                {/* Quick Toggle Pills Satuan */}
+                <div className="flex flex-wrap gap-1 mb-2 items-center">
+                  <span className="text-[10px] text-gray-500 font-semibold mr-0.5">Satuan:</span>
+                  {SATUAN_OPSI.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setItem2Satuan(item2Satuan === s ? "" : s)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition ${
+                        item2Satuan === s
+                          ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                          : "bg-white text-gray-600 border-gray-300 hover:bg-orange-50"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -652,7 +771,7 @@ export default function NotaPage() {
                     <div key={idx} className="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-xs shadow-sm">
                       <div className="flex-1 truncate pr-2">
                         <div className="font-bold text-gray-700">{item.namaBarang}</div>
-                        <div className="text-gray-500">{item.qty} × {formatRp(item.hargaSatuan)}</div>
+                        <div className="text-gray-500">{item.qty} {item.satuan || ""} × {formatRp(item.hargaSatuan)}</div>
                       </div>
                       <div className="font-bold text-gray-800 mr-3">{formatRp(item.totalHarga)}</div>
                       <div className="flex gap-2">
@@ -679,19 +798,54 @@ export default function NotaPage() {
               className="w-full mb-2 p-2 border border-gray-300 rounded text-sm outline-none"
               placeholder="Nama Barang..."
             />
-            <div className="flex gap-2 mb-2">
-              <input
-                type="number" value={itemQty}
-                onChange={(e) => setItemQty(e.target.value ? Number(e.target.value) : "")}
-                className="w-20 p-2 border border-gray-300 rounded text-sm text-center"
-                placeholder="Qty"
-              />
-              <input
-                type="number" value={itemPrice}
-                onChange={(e) => setItemPrice(e.target.value ? Number(e.target.value) : "")}
-                className="flex-1 p-2 border border-gray-300 rounded text-sm text-right"
-                placeholder="Harga Satuan"
-              />
+            <div className="grid grid-cols-12 gap-2 mb-2">
+              <div className="col-span-3">
+                <input
+                  type="number"
+                  step="any"
+                  value={itemQty}
+                  onChange={(e) => setItemQty(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-center outline-none focus:border-blue-900"
+                  placeholder="Qty"
+                />
+              </div>
+              <div className="col-span-4">
+                <input
+                  type="text"
+                  value={itemSatuan}
+                  onChange={(e) => setItemSatuan(e.target.value)}
+                  className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-center outline-none focus:border-blue-900"
+                  placeholder="Satuan"
+                />
+              </div>
+              <div className="col-span-5">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={itemPrice}
+                  onChange={(e) => setItemPrice(formatRupiahInput(e.target.value))}
+                  className="w-full min-w-0 p-2 border border-gray-300 rounded text-sm text-right outline-none focus:border-blue-900 font-mono"
+                  placeholder="Harga (Rp)"
+                />
+              </div>
+            </div>
+            {/* Quick Toggle Pills Satuan */}
+            <div className="flex flex-wrap gap-1 mb-2 items-center">
+              <span className="text-[10px] text-gray-500 font-semibold mr-0.5">Satuan:</span>
+              {SATUAN_OPSI.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setItemSatuan(itemSatuan === s ? "" : s)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition ${
+                    itemSatuan === s
+                      ? "bg-blue-900 text-white border-blue-900 shadow-sm"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-blue-50"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
             <div className="flex gap-2">
               <button
@@ -720,7 +874,7 @@ export default function NotaPage() {
                 <div key={idx} className="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-xs shadow-sm">
                   <div className="flex-1 truncate pr-2">
                     <div className="font-bold text-gray-700">{item.namaBarang}</div>
-                    <div className="text-gray-500">{item.qty} × {formatRp(item.hargaSatuan)}</div>
+                    <div className="text-gray-500">{item.qty} {item.satuan || ""} × {formatRp(item.hargaSatuan)}</div>
                   </div>
                   <div className="font-bold text-gray-800 mr-3">{formatRp(item.totalHarga)}</div>
                   <div className="flex gap-2">

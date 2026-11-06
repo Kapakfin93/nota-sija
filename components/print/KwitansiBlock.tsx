@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { terbilang } from "../../lib/services/terbilang";
 
 interface KwitansiBlockProps {
@@ -22,7 +21,8 @@ export function KwitansiBlock({
   kota = "Semarang",
   sertakanStempel = false,
 }: KwitansiBlockProps) {
-  const formatRp = (n: number) => n.toLocaleString("id-ID");
+  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
+
 
   return (
     <div className="doc-half kwitansi-half">

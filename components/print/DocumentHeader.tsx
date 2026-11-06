@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react";
-
 interface DocumentHeaderProps {
   documentTitle: "NOTA" | "SURAT ORDERAN";
   noDokumen: string;
