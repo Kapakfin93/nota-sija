@@ -21,15 +21,56 @@ export class GoogleSheetsRepository implements ISheetRepository {
   }
 
   private getSheetsClient() {
-    if (!fs.existsSync(this.keyFilePath)) {
-      throw new Error(`Service account file not found at: ${this.keyFilePath}`);
+    // 1. Prioritas Cloud / Vercel: Baca dari raw JSON Environment Variable
+    const envJson =
+      process.env.GOOGLE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_CREDENTIALS;
+    if (envJson) {
+      try {
+        const credentials = JSON.parse(envJson);
+        if (credentials.private_key) {
+          credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
+        }
+        const auth = new google.auth.GoogleAuth({
+          credentials,
+          scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+        });
+        return google.sheets({ version: "v4", auth });
+      } catch (e: any) {
+        console.error(
+          "[GoogleSheetsRepository] Gagal parse GOOGLE_SERVICE_ACCOUNT_JSON dari env:",
+          e
+        );
+      }
     }
-    const auth = new google.auth.GoogleAuth({
-      keyFile: this.keyFilePath,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-    return google.sheets({ version: "v4", auth });
+
+    // 2. Alternatif Vercel: Baca dari variable terpisah
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    if (clientEmail && privateKey) {
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: clientEmail,
+          private_key: privateKey.replace(/\\n/g, "\n"),
+        },
+        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      });
+      return google.sheets({ version: "v4", auth });
+    }
+
+    // 3. Fallback Local Development: File service-account.json di local disk
+    if (fs.existsSync(this.keyFilePath)) {
+      const auth = new google.auth.GoogleAuth({
+        keyFile: this.keyFilePath,
+        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      });
+      return google.sheets({ version: "v4", auth });
+    }
+
+    throw new Error(
+      "Kredensial Google Sheets tidak ditemukan. Di Vercel, tambahkan Environment Variable: GOOGLE_SERVICE_ACCOUNT_JSON (berisi isi seluruh file service-account.json) atau GOOGLE_CLIENT_EMAIL & GOOGLE_PRIVATE_KEY."
+    );
   }
+
 
   /**
    * Ekstrak segmen MM_YY dari tanggalDokumen ("DD/MM/YY") atau noDokumen ("DD/MM/YY/NN")
