@@ -12,27 +12,35 @@ Sistem `nota-sija` dirancang menggunakan arsitektur 3 lapis (**3-Layer Architect
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                 LAYER 1: PRESENTATION LAYER                 │
-│  - app/nota/page.tsx, app/orderan/page.tsx                  │
-│  - app/nota/print/page.tsx, app/orderan/print/page.tsx      │
-│  - components/print/ (Unified Print Components)             │
+│  - Formulir Dokumen: app/nota/page.tsx, app/orderan/page.tsx │
+│  - Halaman Cetak: app/nota/print/, app/orderan/print/       │
+│  - Komponen Cetak: components/print/ (SSOT Print A4)        │
+│  - Audit Dashboard: app/dashboard/page.tsx                  │
+│  - Komponen Dashboard: components/dashboard/                │
+│    (Header, MonthSelector, SummaryCards, Table, Modal)      │
 └──────────────────────────────┬──────────────────────────────┘
                                │ invokes
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 LAYER 2: BUSINESS LOGIC LAYER               │
-│  - lib/services/notaService.ts                              │
-│  - lib/services/orderanService.ts                           │
-│  - lib/services/documentNumber.ts                           │
-│  - lib/services/terbilang.ts                                │
+│  - lib/services/notaService.ts (Aturan Penagihan & Lunas)   │
+│  - lib/services/orderanService.ts (Surat Orderan)           │
+│  - lib/services/documentNumber.ts (Penomoran DD/MM/YY/NN)   │
+│  - lib/services/terbilang.ts (Konversi Kalimat Rupiah)      │
+│  - lib/utils/format.ts (Helper Format Mata Uang & Periode)  │
 └──────────────────────────────┬──────────────────────────────┘
-                               │ depends on Interface
+                               │ depends on Interface / DTO
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 LAYER 3: DATA / PERSISTENCE LAYER           │
-│  - lib/repositories/ISheetRepository.ts (Contract)          │
-│  - lib/repositories/localStorageRepository.ts               │
-│  - lib/repositories/inMemoryRepository.ts                   │
-│  - lib/types/transaksi.ts (Domain DTOs)                     │
+│  - Kontrak Interface: lib/repositories/ISheetRepository.ts  │
+│  - Cache Offline-First: lib/repositories/localStorage...ts   │
+│  - Cloud Vault: lib/repositories/sheetsRepository.ts        │
+│    (GoogleSheetsRepository — Monthly Partitioning Nota_MM_YY│
+│     & Number Formatting #,##0)                              │
+│  - Sinkronisasi Hybrid: lib/repositories/hybridRepository.ts│
+│  - API Boundary: app/api/transaksi/route.ts (Serverless)    │
+│  - Domain DTO: lib/types/transaksi.ts                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -41,8 +49,9 @@ Sistem `nota-sija` dirancang menggunakan arsitektur 3 lapis (**3-Layer Architect
 ## 2. Layer Responsibilities & Rules
 
 ### 2.1 Layer 1: Presentation Layer
-- **Lokasi:** `app/` dan `components/print/`.
+- **Lokasi:** `app/`, `components/print/`, dan `components/dashboard/`.
 - **Tanggung Jawab:**
+
   - Menangkap event user (input form, pemilihan item, navigasi).
   - Merender tampilan interaktif dan formulir sidebar.
   - Merender dokumen cetak A4 dengan presisi tinggi.
