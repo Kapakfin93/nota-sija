@@ -11,6 +11,13 @@ import {
   parseRupiahInput,
 } from "../../lib/services/documentNumber";
 import {
+  formatAngka,
+  fmtDate,
+  todayIsoStr,
+  normalizeItemBarang,
+} from "../../lib/utils/format";
+import {
+  PrintStyles,
   DocumentHeader,
   DocumentTable,
   DocumentSignature,
@@ -24,32 +31,7 @@ const orderanService = new OrderanService(_repo);
 
 const DRAFT_STORAGE_KEY = "eOrderanDraft";
 
-function fmtDate(dateStr: string): string {
-  if (!dateStr) return "-";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return "-";
-  const [y, m, d] = parts;
-  return `${d}/${m}/${y.slice(-2)}`;
-}
-
-function todayStr(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 const SATUAN_OPSI = ["pcs", "rim", "lembar", "unit", "M2", "buku"];
-
-function normalizeItem(raw: any): ItemBarang {
-  const qty = Number(raw?.qty ?? raw?.volume ?? 1) || 1;
-  const hargaSatuan = Number(raw?.hargaSatuan ?? raw?.harga ?? 0) || 0;
-  const totalHarga = Number(raw?.totalHarga ?? (qty * hargaSatuan)) || (qty * hargaSatuan);
-  return {
-    namaBarang: String(raw?.namaBarang || raw?.barang || "").trim(),
-    qty,
-    satuan: raw?.satuan ? String(raw.satuan).trim() : undefined,
-    hargaSatuan,
-    totalHarga,
-  };
-}
 
 export default function OrderanPage() {
   const router = useRouter();
@@ -84,23 +66,23 @@ export default function OrderanPage() {
       if (raw) {
         const d = JSON.parse(raw);
         setNoDokumen(d.no || d.noDokumen || generateNoDokumen());
-        setTanggal(d.date || d.tanggal || todayStr());
+        setTanggal(d.date || d.tanggal || todayIsoStr());
         setNamaCustomer(d.cust || d.customer || d.namaCustomer || "");
         setDeskripsi(d.desk || d.deskripsi || "");
         setWaktuPengerjaan(d.kerja || d.waktuPengerjaan || "");
         setWaktuPengiriman(d.kirim || d.waktuPengiriman || "");
         setFileLabel(d.fileLabel || "");
         setSertakanStempel(Boolean(d.sertakanStempel || d.showStempel));
-        const loadedItems = Array.isArray(d.items) ? d.items.map(normalizeItem) : [];
+        const loadedItems = Array.isArray(d.items) ? d.items.map(normalizeItemBarang) : [];
         setItems(loadedItems);
       } else {
         setNoDokumen(generateNoDokumen());
-        setTanggal(todayStr());
+        setTanggal(todayIsoStr());
         setSertakanStempel(false);
       }
     } catch {
       setNoDokumen(generateNoDokumen());
-      setTanggal(todayStr());
+      setTanggal(todayIsoStr());
       setSertakanStempel(false);
     }
     setIsLoaded(true);
@@ -129,9 +111,6 @@ export default function OrderanPage() {
       console.error("Gagal simpan draft orderan:", e);
     }
   }, [isLoaded, noDokumen, tanggal, namaCustomer, deskripsi, waktuPengerjaan, waktuPengiriman, fileLabel, sertakanStempel, items]);
-
-  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
-
 
   const dynamicFileName = formatPdfFileName({
     customLabel: fileLabel || namaCustomer,
@@ -197,7 +176,7 @@ export default function OrderanPage() {
   const resetAll = () => {
     if (!confirm("Buat Surat Orderan baru? Draft saat ini akan di-reset.")) return;
     setNoDokumen(generateNoDokumen());
-    setTanggal(todayStr());
+    setTanggal(todayIsoStr());
     setNamaCustomer("");
     setDeskripsi("");
     setWaktuPengerjaan("");
@@ -257,25 +236,27 @@ export default function OrderanPage() {
         } lg:block w-full lg:w-[420px] h-full overflow-y-auto border-r border-gray-300 bg-white pb-20 lg:pb-0 shrink-0`}
       >
         {/* Header sticky */}
-        <div className="p-4 sticky top-0 z-10 shadow-md flex justify-between items-center text-white bg-blue-900">
-          <div className="flex items-center gap-2">
+        <div className="p-3 sm:p-4 sticky top-0 z-10 shadow-md flex flex-wrap justify-between items-center gap-2 text-white bg-blue-900">
+          <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+            <h1 className="font-bold text-sm sm:text-lg truncate mr-1">
+              <i className="fa-solid fa-file-signature mr-1" /> Surat Orderan
+            </h1>
             <Link
               href="/dashboard"
-              className="text-xs bg-emerald-600/80 hover:bg-emerald-600 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95 text-white font-medium shadow-xs"
+              className="text-[11px] sm:text-xs bg-emerald-600/80 hover:bg-emerald-600 px-2 py-1 rounded flex items-center gap-1 transition active:scale-95 text-white font-medium shadow-xs"
             >
               <i className="fa-solid fa-chart-line" /> Dashboard
             </Link>
-            <Link href="/nota" className="text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded flex items-center gap-1">
+            <Link
+              href="/nota"
+              className="text-[11px] sm:text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1 transition active:scale-95"
+            >
               <i className="fa-solid fa-receipt" /> Nota
             </Link>
-
-            <h1 className="font-bold text-base sm:text-lg truncate">
-              <i className="fa-solid fa-file-signature mr-1" /> Surat Orderan
-            </h1>
           </div>
           <button
             onClick={resetAll}
-            className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded transition active:scale-95"
+            className="text-[11px] sm:text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded transition active:scale-95"
           >
             Reset
           </button>
@@ -481,10 +462,10 @@ export default function OrderanPage() {
                   <div className="flex-1 truncate pr-2">
                     <div className="font-bold text-gray-700">{item.namaBarang}</div>
                     <div className="text-gray-500">
-                      {item.qty} {item.satuan || ""} × {formatRp(item.hargaSatuan)}
+                      {item.qty} {item.satuan || ""} × {formatAngka(item.hargaSatuan)}
                     </div>
                   </div>
-                  <div className="font-bold text-gray-800 mr-3">{formatRp(item.totalHarga)}</div>
+                  <div className="font-bold text-gray-800 mr-3">{formatAngka(item.totalHarga)}</div>
                   <div className="flex gap-2">
                     <button onClick={() => startEdit(idx)} className="text-orange-500 p-1" title="Edit">
                       <i className="fa-solid fa-pen" />
@@ -508,31 +489,7 @@ export default function OrderanPage() {
           activeTab === "preview" ? "block" : "hidden"
         } lg:flex flex-1 h-full overflow-y-auto flex-col items-center bg-[#525659] p-0 lg:p-10 gap-5`}
       >
-        <style>{`
-          .nota-wrapper { background: white; width: 210mm; min-height: 297mm; padding: 10mm 12mm; box-sizing: border-box; color: black; font-family: sans-serif; position: relative; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-          .nota-table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 10px; }
-          .nota-table th { background: #1e3a8a; color: white; border: 1px solid #1e3a8a; padding: 7px 6px; font-size: 9pt; font-weight: bold; text-align: center; text-transform: uppercase; }
-          .nota-table td { border: 1px solid #1e3a8a; padding: 7px 6px; font-size: 10pt; vertical-align: top; }
-          .nota-table tfoot td { border: 1px solid #1e3a8a; font-weight: bold; }
-          .header-title { font-size: 15pt; font-weight: 900; color: #1e3a8a; line-height: 1.2; letter-spacing: -0.2px; font-family: "Times New Roman", serif; white-space: nowrap; }
-          .header-sub { font-size: 10pt; font-weight: bold; color: #b91c1c; }
-          .header-small { font-size: 9pt; color: #b91c1c; }
-
-          @media (max-width: 1023px) {
-            .fit-screen-container {
-              width: 100%;
-              overflow: hidden;
-              display: flex;
-              justify-content: center;
-              padding: 8px 0;
-            }
-            .fit-screen-wrapper {
-              transform: scale(calc((100vw - 20px) / 794));
-              transform-origin: top center;
-              margin-bottom: calc(-1 * (1123px - (1123px * (100vw - 20px) / 794)));
-            }
-          }
-        `}</style>
+        <PrintStyles />
 
         {/* Mobile Action Bar */}
         <div className="flex lg:hidden w-full px-3 py-2 bg-gray-900/90 backdrop-blur text-white justify-between items-center text-xs sticky top-0 z-20 shadow">

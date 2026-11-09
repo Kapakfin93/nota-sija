@@ -2,6 +2,7 @@
 
 import { terbilang } from "../../lib/services/terbilang";
 import { formatAngkaId, formatVolume } from "../../lib/services/documentNumber";
+import { formatAngka } from "../../lib/utils/format";
 import { ItemBarang } from "../../lib/types/transaksi";
 
 interface DocumentTableProps {
@@ -25,8 +26,6 @@ export function DocumentTable({
     (s, i) => s + (Number(i.totalHarga) || (Number(i.qty) * Number(i.hargaSatuan)) || 0),
     0
   );
-  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
-
 
   const emptyRowCount = Math.max(0, minRows - items.length);
 
@@ -67,10 +66,10 @@ export function DocumentTable({
                 <td style={{ textAlign: "center" }}>{item.satuan || "-"}</td>
               )}
               <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                {formatRp(item.hargaSatuan)}
+                {formatAngka(item.hargaSatuan)}
               </td>
               <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                {formatRp(item.totalHarga || item.qty * item.hargaSatuan)}
+                {formatAngka(item.totalHarga || item.qty * item.hargaSatuan)}
               </td>
             </tr>
           ))}
@@ -93,7 +92,7 @@ export function DocumentTable({
               TOTAL
             </td>
             <td style={{ textAlign: "right", fontSize: "11pt", whiteSpace: "nowrap" }}>
-              Rp {formatRp(grandTotal)}
+              Rp {formatAngka(grandTotal)}
             </td>
           </tr>
         </tfoot>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatPdfFileName } from "../../../lib/services/documentNumber";
+import { fmtDate } from "../../../lib/utils/format";
 import { ItemBarang } from "../../../lib/types/transaksi";
 import {
   PrintStyles,
@@ -24,14 +25,6 @@ interface StoredOrderanData {
   fileLabel?: string;
   items?: ItemBarang[];
   sertakanStempel?: boolean;
-}
-
-function fmtDate(dateStr?: string): string {
-  if (!dateStr) return "-";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
-  const [y, m, d] = parts;
-  return `${d}/${m}/${y.slice(-2)}`;
 }
 
 export default function OrderanPrintPage() {
@@ -118,8 +111,8 @@ export default function OrderanPrintPage() {
 
       <PrintStyles />
 
-      <div className="print-container">
-        <div className="nota-wrapper">
+      <div className="print-container fit-screen-container">
+        <div className="nota-wrapper fit-screen-wrapper">
           <DocumentHeader
             documentTitle="SURAT ORDERAN"
             noDokumen={data.no || "-"}

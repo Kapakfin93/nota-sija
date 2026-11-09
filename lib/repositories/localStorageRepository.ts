@@ -51,12 +51,27 @@ export class LocalStorageRepository implements ISheetRepository {
     const list = this.getStorageData();
     if (!bulan) return list;
 
-    // Format tanggalDokumen adalah "DD/MM/YY"
+    // Format tanggalDokumen adalah "DD/MM/YY", parameter bulan bisa "MM_YY" (contoh: "09_26") atau "MM"
     return list.filter(t => {
       if (!t.tanggalDokumen) return false;
       const parts = t.tanggalDokumen.split("/");
-      return parts.length >= 2 && parts[1] === bulan;
+      if (parts.length < 2) return false;
+      const mmYy = parts.length >= 3 ? `${parts[1]}_${parts[2]}` : parts[1];
+      return mmYy === bulan || parts[1] === bulan;
     });
+  }
+
+  async ambilDaftarBulan(): Promise<string[]> {
+    const list = this.getStorageData();
+    const months = new Set<string>();
+    for (const t of list) {
+      if (!t.tanggalDokumen) continue;
+      const parts = t.tanggalDokumen.split("/");
+      if (parts.length >= 3) {
+        months.add(`${parts[1]}_${parts[2]}`);
+      }
+    }
+    return Array.from(months).sort().reverse();
   }
 
   async updateStatus(noDokumen: string, status: Transaksi["status"]): Promise<void> {

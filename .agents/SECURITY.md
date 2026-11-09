@@ -37,8 +37,8 @@ Aplikasi menyimpan draf transaksi dan riwayat ke dalam browser `localStorage`.
 
 ## 3. Secret & Environment Variable Hygiene
 
-- **Status Saat Ini:** Aplikasi beroperasi 100% pada client browser menggunakan `LocalStorageRepository` dan `InMemoryRepository`. Tidak ada API keys atau kredensial yang tersimpan di client.
-- **Aturan Masa Depan (Jika ada Integrasi Layanan Luar):**
-  - DILARANG PERNAH menyimpan kredensial atau private token di dalam file kode sumber atau git history.
-  - Variabel sensitif wajib diletakkan di `.env.local` dan diakses eksklusif melalui Server Components atau Route Handlers.
+- **Status Saat Ini:** Aplikasi menggunakan `HybridRepository` (gabungan `LocalStorageRepository` di browser dan `GoogleSheetsRepository` di sisi server melalui Route Handler `/api/transaksi`). Kredensial Google Service Account hanya diakses di lingkungan server (Serverless Route Handler) dan **tidak pernah** terekspos ke client bundle.
+- **Aturan Kredensial & Environment Variables:**
+  - DILARANG PERNAH menyimpan kredensial atau file `service-account.json` di dalam git history (sudah dilindungi di `.gitignore`).
+  - Di produksi (Vercel), kredensial wajib diset melalui Environment Variable `GOOGLE_SERVICE_ACCOUNT_JSON` (atau `GOOGLE_CLIENT_EMAIL` & `GOOGLE_PRIVATE_KEY`) serta `GOOGLE_SHEET_ID`.
   - Jangan gunakan prefix `NEXT_PUBLIC_` untuk kredensial server.

@@ -1,6 +1,7 @@
 "use client";
 
 import { terbilang } from "../../lib/services/terbilang";
+import { formatAngka } from "../../lib/utils/format";
 
 interface KwitansiBlockProps {
   noDokumen: string;
@@ -21,9 +22,6 @@ export function KwitansiBlock({
   kota = "Semarang",
   sertakanStempel = false,
 }: KwitansiBlockProps) {
-  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
-
-
   return (
     <div className="doc-half kwitansi-half">
       <div className="flex justify-between items-start" style={{ marginBottom: "10px" }}>
@@ -86,7 +84,7 @@ export function KwitansiBlock({
           whiteSpace: "nowrap",
         }}
       >
-        Rp {formatRp(nominal)}
+        Rp {formatAngka(nominal)}
       </div>
 
       <div style={{ textAlign: "right", marginTop: "30px", fontSize: "9.5pt" }}>

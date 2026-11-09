@@ -25,5 +25,4 @@ export interface Transaksi {
   total: number;
   modeBagianBawah: ModeBagianBawah;
   keteranganKwitansi?: string; // isian manual
-  linkFoto?: string; // referensi ke file di Google Drive
 }

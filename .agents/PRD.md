@@ -88,13 +88,12 @@
 
 ## 5. Scope Boundaries & Technical Debt / Backlog
 
-### 5.1 Technical Debt / PR Backlog: Mode ORDERAN Cloud Partitioning
-- **Status:** DEFERRED / BACKLOG (Technical Debt).
-- **Kondisi Saat Ini:** Mode Nota telah 100% aktif terintegrasi dengan Google Sheets partitioning bulanan (`Nota_MM_YY`) dan penomoran fleksibel. Sementara itu, Mode Surat Orderan (`/orderan`) saat ini menggunakan penyimpanan `localStorage` (offline-first via `HybridRepository` fallback).
-- **Kebutuhan Mendatang (PR Selanjutnya):**
-  - Implementasi tab bulanan khusus `Orderan_MM_YY` pada Google Sheets API.
-  - Template 6 kolom khusus Orderan (No, Nama Barang/Jasa, Qty, Satuan, Harga Satuan, Jumlah, Deskripsi & Waktu).
-  - Alur perpindahan status otomatis dari Orderan Proyek (`berjalan`) menjadi Nota Penagihan (`tertagih` -> `lunas`).
+### 5.1 Status Cloud Partitioning & Audit Dashboard
+- **Status:** ACTIVE / PRODUCTION READY.
+- **Kondisi Saat Ini:**
+  - Modul Nota (`Nota_MM_YY`, 11 kolom `A:K`) dan Modul Surat Orderan (`Orderan_MM_YY`, 13 kolom `A:M`) telah terintegrasi penuh dengan Google Sheets API v4 melalui `GoogleSheetsRepository` dan cache offline-first `HybridRepository`.
+  - Modul Dashboard Audit (`/dashboard`) telah aktif melalui Layer 2 (`NotaService`) dengan tampilan berjenjang: **Mobile Audit Card View (`<640px`)** untuk layar ponsel dan **Tabel 8 Kolom (`>=640px`)** untuk tablet/desktop.
+  - Seluruh pratinjau cetak (`/nota`, `/orderan`, `/nota/print`, `/orderan/print`) mendukung proporsi fisik ISO 216 A4 (`210mm x 297mm`) beserta penskalaan responsif `.fit-screen-wrapper` di layar mobile.
 
 ### 5.2 Scope Boundaries & Constraints
 - **Google Sheets Integration:** Aktif penuh via Google Sheets API v4 (Service Account) terhubung ke Spreadsheet CV SIJA untuk modul Nota.

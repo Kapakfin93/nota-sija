@@ -101,9 +101,9 @@ Sebelumnya terdapat technical debt berupa duplikasi markup antara halaman form p
 
 ```typescript
 export interface ItemBarang {
-  uraian: string;
+  namaBarang: string;
   qty: number;
-  satuan?: string;       // digunakan pada Surat Orderan
+  satuan?: string;       // digunakan pada Surat Orderan & Nota
   hargaSatuan: number;
   totalHarga: number;
 }
@@ -116,7 +116,7 @@ export interface Transaksi {
   namaCustomer: string;
   items: ItemBarang[];
   total: number;
-  modeBagianBawah: "none" | "kwitansi" | "nota2" | "kosong";
+  modeBagianBawah: "kosong" | "kwitansi" | "nota_kedua";
   keteranganKwitansi?: string;
   deskripsi?: string;            // Khusus Surat Orderan
   waktuPengerjaan?: string;      // Khusus Surat Orderan
@@ -154,7 +154,7 @@ export interface Transaksi {
 
 | Komponen / Fitur | Status | Keterangan & Rencana Implementasi |
 | :--- | :--- | :--- |
-| **Mode ORDERAN Cloud Partitioning** | **Technical Debt / PR Backlog** | Pengarsipan Google Sheets saat ini dioptimalkan khusus untuk Modul Nota (`Nota_MM_YY`). Mode Surat Orderan (`/orderan`) berjalan di penyimpanan lokal (`localStorage`). Pembuatan tab `Orderan_MM_YY` dan template 6 kolom dicatat sebagai PR lanjutan. |
-| **Audit Dashboard UI** | **In-Progress** | Membangun antarmuka audit modular di `/dashboard` untuk inspeksi arsip bulanan, ringkasan omzet, filter status, dan aksi kloning/edit ulang nota. |
+| **Mode ORDERAN Cloud Partitioning** | **Active (`Orderan_MM_YY`)** | Pengarsipan Google Sheets (`GoogleSheetsRepository`) mendukung penuh tab bulanan `Nota_MM_YY` (11 kolom `A:K`) dan `Orderan_MM_YY` (13 kolom `A:M`) beserta sinkronisasi `HybridRepository`. |
+| **Audit Dashboard UI & Mobile Card View** | **Active (`/dashboard`)** | Antarmuka audit modular di `/dashboard` terhubung ke Layer 2 (`NotaService`) dengan *Mobile Audit Card View* (`<640px`) dan tabel 8 kolom (`>=640px`). |
 
 

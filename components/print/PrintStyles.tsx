@@ -93,6 +93,20 @@ export function PrintStyles() {
         font-size: 9pt;
         color: #b91c1c;
       }
+      @media (max-width: 1023px) {
+        .fit-screen-container {
+          width: 100%;
+          overflow: hidden;
+          display: flex;
+          justify-content: center;
+          padding: 8px 0;
+        }
+        .fit-screen-wrapper {
+          transform: scale(calc((100vw - 20px) / 794));
+          transform-origin: top center;
+          margin-bottom: calc(-1 * (1123px - (1123px * (100vw - 20px) / 794)));
+        }
+      }
     `}</style>
   );
 }

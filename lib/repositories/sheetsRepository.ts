@@ -310,15 +310,21 @@ export class GoogleSheetsRepository implements ISheetRepository {
     const newRows = this.formatRows(data);
 
     if (existingIndices.length > 0) {
-      // Update baris pertama yang cocok
+      // Update baris mulai dari baris pertama yang cocok
       const firstRow = existingIndices[0];
       const endCol = isOrderan ? "M" : "K";
+      const totalSpan = Math.max(existingIndices.length, newRows.length);
+      const paddedRows: (string | number)[][] = [...newRows];
+      const colCount = isOrderan ? 13 : 11;
+      while (paddedRows.length < totalSpan) {
+        paddedRows.push(Array(colCount).fill(""));
+      }
       await sheets.spreadsheets.values.update({
         spreadsheetId: this.spreadsheetId,
-        range: `${sheetName}!A${firstRow}:${endCol}${firstRow + newRows.length - 1}`,
+        range: `${sheetName}!A${firstRow}:${endCol}${firstRow + totalSpan - 1}`,
         valueInputOption: "USER_ENTERED",
         requestBody: {
-          values: newRows,
+          values: paddedRows,
         },
       });
       await this.applyNumberFormatting(sheetName, firstRow - 1, newRows.length, isOrderan);
@@ -434,11 +440,11 @@ export class GoogleSheetsRepository implements ISheetRepository {
           totalHarga: this.parseCleanNumber(r[10]),
         };
       }
-      // Nota
-      const volumeStr = r[4] || "";
-      const volMatch = volumeStr.match(/^([0-9.]+)\s*(.*)$/);
+      // Nota: volume diformat dengan formatAngkaId (titik ribuan, koma desimal, contoh: "1.401 pcs" atau "1,5 M2")
+      const volumeStr = (r[4] || "").trim();
+      const volMatch = volumeStr.match(/^([0-9.,]+)\s*(.*)$/);
       const qty = volMatch ? this.parseCleanNumber(volMatch[1]) : 1;
-      const satuan = volMatch ? volMatch[2] : "";
+      const satuan = volMatch ? volMatch[2].trim() : "";
       return {
         namaBarang: r[3] || "",
         qty,
@@ -559,23 +565,28 @@ export class GoogleSheetsRepository implements ISheetRepository {
         });
 
         const rows = res.data.values || [];
-        let matchingRow = -1;
+        const matchingRows: number[] = [];
         for (let i = 1; i < rows.length; i++) {
           if (rows[i] && rows[i][0] === noDokumen) {
-            matchingRow = i + 1;
-            break;
+            matchingRows.push(i + 1);
           }
         }
 
-        if (matchingRow > 0) {
+        if (matchingRows.length > 0) {
           const isOrderan = sheetName.startsWith("Orderan");
           const statusCol = isOrderan ? "M" : "K";
+          const firstRow = matchingRows[0];
+          const lastRow = matchingRows[matchingRows.length - 1];
+          const statusValues = Array.from(
+            { length: lastRow - firstRow + 1 },
+            (_, idx) => (matchingRows.includes(firstRow + idx) ? [status] : [rows[firstRow + idx - 1]?.[isOrderan ? 12 : 10] || status])
+          );
           await sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: `${sheetName}!${statusCol}${matchingRow}`,
+            range: `${sheetName}!${statusCol}${firstRow}:${statusCol}${lastRow}`,
             valueInputOption: "USER_ENTERED",
             requestBody: {
-              values: [[status]],
+              values: statusValues,
             },
           });
           return;

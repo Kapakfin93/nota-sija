@@ -11,6 +11,14 @@ import {
   parseRupiahInput,
 } from "../../lib/services/documentNumber";
 import {
+  formatAngka,
+  fmtDate,
+  parseShortDateToIso,
+  todayIsoStr,
+  normalizeItemBarang,
+} from "../../lib/utils/format";
+import {
+  PrintStyles,
   DocumentHeader,
   DocumentTable,
   DocumentSignature,
@@ -29,25 +37,6 @@ const orderanService = new OrderanService(_repo);
 
 const STORAGE_KEY = "eNotaSija";
 
-// Helper: YYYY-MM-DD → DD/MM/YY (split string, aman dari timezone shift)
-function fmtDate(dateStr: string): string {
-  if (!dateStr) return "-";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return "-";
-  const [y, m, d] = parts;
-  return `${d}/${m}/${y.slice(-2)}`;
-}
-
-// Helper: DD/MM/YY atau DD/MM/YY/NN → YYYY-MM-DD (untuk input date HTML5)
-function parseShortDateToIso(shortDate?: string): string | null {
-  if (!shortDate) return null;
-  const parts = shortDate.split("/");
-  if (parts.length < 3) return null;
-  const [d, m, y] = parts;
-  const fullYear = y.length === 2 ? `20${y}` : y;
-  return `${fullYear}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-}
-
 // Mapping UI mode string → Transaksi["modeBagianBawah"] type
 function toModeBagianBawah(mode: string): Transaksi["modeBagianBawah"] {
   if (mode === "kwitansi") return "kwitansi";
@@ -55,24 +44,7 @@ function toModeBagianBawah(mode: string): Transaksi["modeBagianBawah"] {
   return "kosong";
 }
 
-function todayStr(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
 const SATUAN_OPSI = ["pcs", "rim", "lembar", "unit", "M2", "buku"];
-
-function normalizeItem(raw: any): ItemBarang {
-  const qty = Number(raw?.qty ?? raw?.volume ?? 1) || 1;
-  const hargaSatuan = Number(raw?.hargaSatuan ?? raw?.harga ?? 0) || 0;
-  const totalHarga = Number(raw?.totalHarga ?? (qty * hargaSatuan)) || (qty * hargaSatuan);
-  return {
-    namaBarang: String(raw?.namaBarang || raw?.barang || "").trim(),
-    qty,
-    satuan: raw?.satuan ? String(raw.satuan).trim() : undefined,
-    hargaSatuan,
-    totalHarga,
-  };
-}
 
 export default function NotaPage() {
   const router = useRouter();
@@ -120,10 +92,10 @@ export default function NotaPage() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const d = JSON.parse(raw);
-        const loadedItems = Array.isArray(d.items) ? d.items.map(normalizeItem) : [];
+        const loadedItems = Array.isArray(d.items) ? d.items.map(normalizeItemBarang) : [];
         setItems(loadedItems);
         setNoDokumen(d.no || d.noDokumen || generateNoDokumen());
-        setTanggal(d.date || d.tanggal || todayStr());
+        setTanggal(d.date || d.tanggal || todayIsoStr());
         setNamaCustomer(d.cust || d.customer || d.namaCustomer || "");
         setFileLabel(d.fileLabel || "");
         // Kompatibel data lama (field 'kwitansi' boolean dari versi sebelumnya)
@@ -131,17 +103,17 @@ export default function NotaPage() {
         setBottomMode(mode);
         setKetKwitansi(d.ket || d.kwitansiKet || d.keteranganKwitansi || "");
         setSertakanStempel(Boolean(d.sertakanStempel || d.showStempel));
-        const loadedItems2 = Array.isArray(d.items2) ? d.items2.map(normalizeItem) : [];
+        const loadedItems2 = Array.isArray(d.items2) ? d.items2.map(normalizeItemBarang) : [];
         setItems2(loadedItems2);
         setNoDokumen2(d.no2 || d.noDokumen2 || generateNoDokumen());
-        setTanggal2(d.date2 || d.tanggal2 || todayStr());
+        setTanggal2(d.date2 || d.tanggal2 || todayIsoStr());
         setNamaCustomer2(d.cust2 || d.customer2 || d.namaCustomer2 || "");
       } else {
         // Nota baru — generate nomor pertama kali
         setNoDokumen(generateNoDokumen());
         setNoDokumen2(generateNoDokumen());
-        setTanggal(todayStr());
-        setTanggal2(todayStr());
+        setTanggal(todayIsoStr());
+        setTanggal2(todayIsoStr());
         setFileLabel("");
         setSertakanStempel(false);
       }
@@ -149,8 +121,8 @@ export default function NotaPage() {
       // localStorage corrupt — mulai bersih
       setNoDokumen(generateNoDokumen());
       setNoDokumen2(generateNoDokumen());
-      setTanggal(todayStr());
-      setTanggal2(todayStr());
+      setTanggal(todayIsoStr());
+      setTanggal2(todayIsoStr());
       setFileLabel("");
       setSertakanStempel(false);
     }
@@ -189,9 +161,6 @@ export default function NotaPage() {
     0
   );
 
-  const formatRp = (n: number | undefined | null) => (Number(n) || 0).toLocaleString("id-ID");
-
-
   // Nama file PDF dinamis: sija-[label]-[nomor]. Digunakan untuk <title> dan "Save as PDF"
   const dynamicFileName = formatPdfFileName({
     customLabel: fileLabel || namaCustomer,
@@ -213,7 +182,7 @@ export default function NotaPage() {
   // ─── Reset Nota Baru ──────────────────────────────────────────────────────
   const resetAll = () => {
     if (!confirm("Buat nota baru? Semua data saat ini akan dihapus.")) return;
-    const today = todayStr();
+    const today = todayIsoStr();
     setItems([]);
     setItems2([]);
     setNoDokumen(generateNoDokumen()); // nomor baru hanya di sini & mount
@@ -467,28 +436,27 @@ export default function NotaPage() {
         } lg:block w-full lg:w-[400px] h-full overflow-y-auto border-r border-gray-300 bg-white pb-20 lg:pb-0 shrink-0`}
       >
         {/* Header sticky */}
-        <div className="p-4 sticky top-0 z-10 shadow-md flex justify-between items-center text-white bg-blue-900">
-          <div className="flex items-center gap-2">
-            <h1 className="font-bold text-base sm:text-lg truncate">
+        <div className="p-3 sm:p-4 sticky top-0 z-10 shadow-md flex flex-wrap justify-between items-center gap-2 text-white bg-blue-900">
+          <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
+            <h1 className="font-bold text-sm sm:text-lg truncate mr-1">
               <i className="fa-solid fa-pen-to-square mr-1" /> Input Nota
             </h1>
             <Link
               href="/dashboard"
-              className="text-xs bg-emerald-600/80 hover:bg-emerald-600 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95 text-white font-medium shadow-xs"
+              className="text-[11px] sm:text-xs bg-emerald-600/80 hover:bg-emerald-600 px-2 py-1 rounded flex items-center gap-1 transition active:scale-95 text-white font-medium shadow-xs"
             >
               <i className="fa-solid fa-chart-line" /> Dashboard
             </Link>
             <Link
               href="/orderan"
-              className="text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded flex items-center gap-1 transition active:scale-95"
+              className="text-[11px] sm:text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1 transition active:scale-95"
             >
               <i className="fa-solid fa-file-signature" /> Orderan
             </Link>
-
           </div>
           <button
             onClick={resetAll}
-            className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded transition active:scale-95"
+            className="text-[11px] sm:text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded transition active:scale-95"
           >
             Reset
           </button>
@@ -771,9 +739,9 @@ export default function NotaPage() {
                     <div key={idx} className="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-xs shadow-sm">
                       <div className="flex-1 truncate pr-2">
                         <div className="font-bold text-gray-700">{item.namaBarang}</div>
-                        <div className="text-gray-500">{item.qty} {item.satuan || ""} × {formatRp(item.hargaSatuan)}</div>
+                        <div className="text-gray-500">{item.qty} {item.satuan || ""} × {formatAngka(item.hargaSatuan)}</div>
                       </div>
-                      <div className="font-bold text-gray-800 mr-3">{formatRp(item.totalHarga)}</div>
+                      <div className="font-bold text-gray-800 mr-3">{formatAngka(item.totalHarga)}</div>
                       <div className="flex gap-2">
                         <button onClick={() => startEdit2(idx)} className="text-orange-500 p-1" title="Edit"><i className="fa-solid fa-pen" /></button>
                         <button onClick={() => removeItem2(idx)} className="text-red-500 p-1" title="Hapus"><i className="fa-solid fa-trash" /></button>
@@ -874,9 +842,9 @@ export default function NotaPage() {
                 <div key={idx} className="bg-white p-2 rounded border border-gray-200 flex justify-between items-center text-xs shadow-sm">
                   <div className="flex-1 truncate pr-2">
                     <div className="font-bold text-gray-700">{item.namaBarang}</div>
-                    <div className="text-gray-500">{item.qty} {item.satuan || ""} × {formatRp(item.hargaSatuan)}</div>
+                    <div className="text-gray-500">{item.qty} {item.satuan || ""} × {formatAngka(item.hargaSatuan)}</div>
                   </div>
-                  <div className="font-bold text-gray-800 mr-3">{formatRp(item.totalHarga)}</div>
+                  <div className="font-bold text-gray-800 mr-3">{formatAngka(item.totalHarga)}</div>
                   <div className="flex gap-2">
                     <button onClick={() => startEdit(idx)} className="text-orange-500 p-1" title="Edit"><i className="fa-solid fa-pen" /></button>
                     <button onClick={() => removeItem(idx)} className="text-red-500 p-1" title="Hapus"><i className="fa-solid fa-trash" /></button>
@@ -897,33 +865,7 @@ export default function NotaPage() {
           activeTab === "preview" ? "block" : "hidden"
         } lg:flex flex-1 h-full overflow-y-auto flex-col items-center bg-[#525659] p-0 lg:p-10 gap-5`}
       >
-        <style>{`
-          .nota-wrapper { background: white; width: 210mm; min-height: 297mm; padding: 10mm 12mm; box-sizing: border-box; color: black; font-family: sans-serif; position: relative; flex-shrink: 0; }
-          .doc-half { min-height: 128mm; }
-          .doc-half.kwitansi-half { border-top: 2px dashed #999; margin-top: 8mm; padding-top: 8mm; }
-          .nota-table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 10px; }
-          .nota-table th { background: #1e3a8a; color: white; border: 1px solid #1e3a8a; padding: 6px 5px; font-size: 8.5pt; font-weight: bold; text-align: center; text-transform: uppercase; }
-          .nota-table td { border: 1px solid #1e3a8a; padding: 6px 5px; font-size: 9.5pt; vertical-align: top; }
-          .nota-table tfoot td { border: 1px solid #1e3a8a; font-weight: bold; }
-          .header-title { font-size: 15pt; font-weight: 900; color: #1e3a8a; line-height: 1.2; letter-spacing: -0.2px; font-family: 'Times New Roman', serif; white-space: nowrap; }
-          .header-sub { font-size: 10pt; font-weight: bold; color: #b91c1c; }
-          .header-small { font-size: 9pt; color: #b91c1c; }
-
-          @media (max-width: 1023px) {
-            .fit-screen-container {
-              width: 100%;
-              overflow: hidden;
-              display: flex;
-              justify-content: center;
-              padding: 8px 0;
-            }
-            .fit-screen-wrapper {
-              transform: scale(calc((100vw - 20px) / 794));
-              transform-origin: top center;
-              margin-bottom: calc(-1 * (1123px - (1123px * (100vw - 20px) / 794)));
-            }
-          }
-        `}</style>
+        <PrintStyles />
 
         {/* Mobile Action Bar di atas Preview */}
         <div className="flex lg:hidden w-full px-3 py-2 bg-gray-900/90 backdrop-blur text-white justify-between items-center text-xs sticky top-0 z-20 shadow">
@@ -1110,7 +1052,7 @@ export default function NotaPage() {
                         </div>
                         <div className="font-bold text-gray-800 text-sm">{ord.namaCustomer}</div>
                         <div className="text-xs text-gray-500">
-                          {ord.items.length} item • Total: <strong className="text-gray-800">Rp {formatRp(ord.total)}</strong>
+                          {ord.items.length} item • Total: <strong className="text-gray-800">Rp {formatAngka(ord.total)}</strong>
                         </div>
                         {ord.deskripsi && (
                           <div className="text-xs text-gray-600 italic">

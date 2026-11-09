@@ -23,9 +23,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Framework:** Next.js (App Router, Turbopack)
 - **UI & Styling:** React 19, Tailwind CSS v4, Dedicated Print CSS (`@page`)
 - **Storage:** Hybrid Architecture (LocalStorage Offline-First + Google Sheets API Cloud Archive Vault via `HybridRepository`)
-- **Archiving Engine:** Dynamic Monthly Tabs (`Nota_MM_YY`) on Google Sheets (Mode Orderan deferred as Technical Debt)
+- **Archiving Engine:** Dynamic Monthly Tabs (`Nota_MM_YY` & `Orderan_MM_YY`) on Google Sheets
 - **Workflow:** "Clone & Re-date" with auto-regenerating unique document numbers (`DD/MM/YY/NN`)
-- **Audit Dashboard:** Modular audit viewer at `/dashboard` for monthly transaction inspection
+- **Audit Dashboard:** Modular audit viewer at `/dashboard` connected via Layer 2 (`NotaService`) with responsive Mobile Audit Card View (`<640px`) and 8-column Desktop Table (`>=640px`)
 
 - **Package Manager:** `npm`
 
@@ -51,10 +51,10 @@ npm run start
 
 ## 3. Strict 3-Layer Architecture Rules
 
-1. **Layer 1: Presentation (`app/`, `components/print/`)**
-   - Menangani UI formulir dan tampilan cetak A4.
-   - **WAJIB** menggunakan komponen cetak dari `components/print/` sebagai Single Source of Truth.
-   - **DILARANG** memanggil repository langsung dari layer ini. Selalu panggil melalui `lib/services/`.
+1. **Layer 1: Presentation (`app/`, `components/print/`, `components/dashboard/`)**
+   - Menangani UI formulir, tampilan cetak A4 (`fit-screen-wrapper` proporsional di mobile & 1:1 di desktop), serta Audit Dashboard.
+   - **WAJIB** menggunakan komponen cetak dari `components/print/` (termasuk `PrintStyles.tsx`) sebagai Single Source of Truth.
+   - **DILARANG** memanggil repository atau endpoint `/api/transaksi` langsung dari layer ini. Selalu panggil melalui `lib/services/` (`NotaService`, `OrderanService`) dan utilitas format bersama di `lib/utils/format.ts`.
 2. **Layer 2: Business Logic (`lib/services/`)**
    - Mengelola perhitungan harga, aturan penomoran `DD/MM/YY/NN`, sinkronisasi tanggal, terbilang rupiah, dan sanitasi nama file PDF.
    - Bergantung hanya pada interface kontrak `ISheetRepository`.

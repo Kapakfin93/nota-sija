@@ -8,6 +8,7 @@ import { Transaksi } from "../types/transaksi";
 export interface ISheetRepository {
   simpanTransaksi(data: Transaksi): Promise<void>;
   ambilTransaksi(noDokumen: string): Promise<Transaksi | null>;
-  ambilSemuaTransaksi(bulan?: string): Promise<Transaksi[]>; // filter per bulan, lihat PRD
+  ambilSemuaTransaksi(bulan?: string): Promise<Transaksi[]>; // filter per bulan ("MM_YY" atau "MM")
+  ambilDaftarBulan(): Promise<string[]>; // daftar periode bulan arsip ("MM_YY")
   updateStatus(noDokumen: string, status: Transaksi["status"]): Promise<void>;
 }

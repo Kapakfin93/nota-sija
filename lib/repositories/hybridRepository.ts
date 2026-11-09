@@ -70,6 +70,23 @@ export class HybridRepository implements ISheetRepository {
     return this.localRepo.ambilSemuaTransaksi(bulan);
   }
 
+  async ambilDaftarBulan(): Promise<string[]> {
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/transaksi?action=daftarBulan");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            return json.data;
+          }
+        }
+      } catch (e) {
+        console.warn("[HybridRepository] Gagal fetch daftarBulan, fallback ke LocalStorage:", e);
+      }
+    }
+    return this.localRepo.ambilDaftarBulan();
+  }
+
   async updateStatus(noDokumen: string, status: Transaksi["status"]): Promise<void> {
     // 1. Update lokal
     await this.localRepo.updateStatus(noDokumen, status);

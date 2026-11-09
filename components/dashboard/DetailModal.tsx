@@ -122,7 +122,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
         {/* Body Modal */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Metadata Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-gray-50/70 p-3.5 rounded-xl border border-gray-200 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50/70 p-3.5 rounded-xl border border-gray-200 text-xs">
             <div>
               <span className="text-gray-500 block text-[11px]">Kepada Yth</span>
               <span className="font-semibold text-gray-900">{transaksi.namaCustomer || "-"}</span>
@@ -226,7 +226,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             <p className="text-gray-600">
               Muat data nota ini ke formulir Nota untuk edit tanggal atau item tanpa perlu ketik ulang dari awal.
             </p>
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <label className="flex items-center gap-2 cursor-pointer text-gray-800">
                 <input
                   type="radio"

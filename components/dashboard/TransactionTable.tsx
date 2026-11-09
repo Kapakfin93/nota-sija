@@ -90,8 +90,118 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto">
+      {/* Mobile Card List (<640px) — menghindari scroll horizontal 8 kolom di layar HP */}
+      <div className="sm:hidden divide-y divide-gray-200 bg-white">
+        {filteredData.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-xs">
+            <p className="font-medium text-gray-600">Tidak ada data transaksi yang sesuai.</p>
+            <p className="text-[11px] text-gray-400 mt-1">
+              {searchTerm ? "Coba kata kunci pencarian lain." : "Belum ada transaksi di periode bulan ini."}
+            </p>
+          </div>
+        ) : (
+          filteredData.map((tx) => {
+            const isPending = isUpdatingStatus === tx.noDokumen;
+            return (
+              <div key={`mob-${tx.noDokumen}`} className="p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      {tx.noDokumen}
+                    </span>
+                    <span className="text-[11px] text-gray-500">{tx.tanggalDokumen}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => {
+                      const nextStatus: Transaksi["status"] =
+                        tx.status === "lunas" ? "tertagih" : "lunas";
+                      onUpdateStatus(tx.noDokumen, nextStatus);
+                    }}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
+                      tx.status === "lunas"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : "bg-amber-50 text-amber-700 border-amber-300"
+                    } ${isPending ? "opacity-50 pointer-events-none" : ""}`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        tx.status === "lunas" ? "bg-emerald-600" : "bg-amber-600"
+                      }`}
+                    />
+                    <span className="capitalize">{tx.status}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-xs text-gray-900 truncate">
+                      {tx.namaCustomer || "-"}
+                    </div>
+                    <div className="text-[11px] text-gray-600 mt-0.5 space-y-0.5">
+                      {tx.items && tx.items.length > 0 ? (
+                        tx.items.slice(0, 2).map((item, idx) => (
+                          <div key={idx} className="truncate">
+                            • {item.namaBarang}{" "}
+                            <span className="text-gray-400">
+                              ({formatAngka(item.qty)} {item.satuan || "pcs"})
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 italic">Tanpa rincian item</span>
+                      )}
+                      {tx.items && tx.items.length > 2 && (
+                        <div className="text-[10px] text-blue-800 font-medium">
+                          +{tx.items.length - 2} item lainnya...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-black text-gray-900">
+                      {formatRupiah(tx.total)}
+                    </div>
+                    <div className="mt-1">
+                      {tx.modeBagianBawah === "kwitansi" ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          + Kwitansi
+                        </span>
+                      ) : tx.modeBagianBawah === "nota_kedua" ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                          Nota Rangkap 2
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                          Standar
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onOpenDetail(tx)}
+                    className="w-full justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>Lihat Rincian / Kloning Nota</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop & Tablet Table Container (>=640px) */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
           <thead className="bg-gray-100/80 text-gray-700 font-semibold uppercase tracking-wider text-[11px]">
             <tr>

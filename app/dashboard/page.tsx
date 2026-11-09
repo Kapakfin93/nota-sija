@@ -2,11 +2,16 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Transaksi } from "@/lib/types/transaksi";
+import { NotaService } from "@/lib/services/notaService";
+import { HybridRepository } from "@/lib/repositories/hybridRepository";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { MonthSelector } from "@/components/dashboard/MonthSelector";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { TransactionTable } from "@/components/dashboard/TransactionTable";
 import { DetailModal } from "@/components/dashboard/DetailModal";
+
+const _repo = new HybridRepository();
+const notaService = new NotaService(_repo);
 
 export default function DashboardPage() {
   const [months, setMonths] = useState<string[]>([]);
@@ -20,43 +25,28 @@ export default function DashboardPage() {
   const [selectedTransaksi, setSelectedTransaksi] = useState<Transaksi | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // 1. Fetch daftar bulan yang tersedia di Google Sheets
+  // 1. Ambil daftar bulan yang tersedia melalui Layer 2 (NotaService)
   const fetchMonths = useCallback(async () => {
     try {
-      const res = await fetch("/api/transaksi?action=daftarBulan");
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setMonths(json.data);
-          // Set default bulan pertama jika ada dan selectedMonth belum di-set
-          if (json.data.length > 0 && selectedMonth === "") {
-            setSelectedMonth(json.data[0]);
-          }
-        }
+      const list = await notaService.ambilDaftarBulan();
+      setMonths(list);
+      if (list.length > 0 && selectedMonth === "") {
+        setSelectedMonth(list[0]);
       }
     } catch (e) {
       console.warn("Gagal memuat daftar bulan:", e);
     }
   }, [selectedMonth]);
 
-  // 2. Fetch transaksi (semua atau per bulan)
+  // 2. Ambil transaksi (semua atau per bulan) melalui Layer 2 (NotaService)
   const fetchTransaksi = useCallback(async (monthToFetch?: string) => {
     setIsLoading(true);
     try {
       const targetMonth = monthToFetch !== undefined ? monthToFetch : selectedMonth;
-      const url = targetMonth
-        ? `/api/transaksi?bulan=${encodeURIComponent(targetMonth)}`
-        : "/api/transaksi";
-
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setTransaksiList(json.data);
-          if (!targetMonth) {
-            setAllTransaksi(json.data);
-          }
-        }
+      const list = await notaService.ambilSemuaTransaksi(targetMonth || undefined);
+      setTransaksiList(list);
+      if (!targetMonth) {
+        setAllTransaksi(list);
       }
     } catch (e) {
       console.error("Gagal memuat data transaksi:", e);
@@ -65,16 +55,13 @@ export default function DashboardPage() {
     }
   }, [selectedMonth]);
 
-  // Initial load: ambil daftar bulan dan data transaksi
+  // Initial load: ambil daftar bulan dan metadata count seluruh arsip via NotaService
   useEffect(() => {
     fetchMonths();
-    // Tarik metadata count seluruh arsip di background
-    fetch("/api/transaksi")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
-          setAllTransaksi(res.data);
-        }
+    notaService
+      .ambilSemuaTransaksi()
+      .then((list) => {
+        setAllTransaksi(list);
       })
       .catch((err) => console.warn("Background count fetch failed:", err));
   }, [fetchMonths]);
@@ -127,30 +114,22 @@ export default function DashboardPage() {
     };
   }, [transaksiList]);
 
-  // Update status transaksi langsung ke server & Google Sheets
+  // Update status transaksi melalui Layer 2 (NotaService)
   const handleUpdateStatus = async (noDokumen: string, newStatus: Transaksi["status"]) => {
     setUpdatingDocNo(noDokumen);
     try {
-      const res = await fetch("/api/transaksi", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noDokumen, status: newStatus }),
-      });
-
-      if (res.ok) {
-        // Optimistic UI update
-        setTransaksiList((prev) =>
-          prev.map((t) => (t.noDokumen === noDokumen ? { ...t, status: newStatus } : t))
-        );
-        if (selectedTransaksi && selectedTransaksi.noDokumen === noDokumen) {
-          setSelectedTransaksi({ ...selectedTransaksi, status: newStatus });
-        }
-      } else {
-        const err = await res.json();
-        alert(`Gagal mengubah status: ${err.error || "Terjadi kesalahan"}`);
+      await notaService.updateStatusTransaksi(noDokumen, newStatus);
+      setTransaksiList((prev) =>
+        prev.map((t) => (t.noDokumen === noDokumen ? { ...t, status: newStatus } : t))
+      );
+      setAllTransaksi((prev) =>
+        prev.map((t) => (t.noDokumen === noDokumen ? { ...t, status: newStatus } : t))
+      );
+      if (selectedTransaksi && selectedTransaksi.noDokumen === noDokumen) {
+        setSelectedTransaksi({ ...selectedTransaksi, status: newStatus });
       }
     } catch (e: any) {
-      alert(`Gagal koneksi ke server: ${e.message}`);
+      alert(`Gagal mengubah status: ${e.message || "Terjadi kesalahan"}`);
     } finally {
       setUpdatingDocNo(null);
     }

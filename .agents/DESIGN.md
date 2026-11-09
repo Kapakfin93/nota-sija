@@ -83,4 +83,13 @@ Pada layar tablet atau ponsel pintar, lebar 210mm (sekitar 794px) akan melebihi 
 }
 ```
 
-Fitur ini memastikan pengguna mobile dapat melihat layout cetak secara utuh 1:1 tanpa merusak dimensi fisik dokumen asli saat dicetak.
+Fitur ini diterapkan secara terpusat di `components/print/PrintStyles.tsx` dan digunakan oleh seluruh halaman pratinjau maupun rute cetak (`/nota`, `/orderan`, `/nota/print`, dan `/orderan/print`) untuk memastikan pengguna mobile dapat melihat layout cetak A4 secara utuh 1:1 tanpa merusak dimensi fisik dokumen asli saat dicetak.
+
+---
+
+## 5. Responsive Dashboard Breakpoints (`/dashboard`)
+
+Untuk menjaga keterbacaan di berbagai rasio layar (Desktop → Tablet → HP):
+- **Desktop (`>=1024px`)**: `SummaryCards` tampil 3 kolom sejajar (`lg:grid-cols-3`), dan `TransactionTable` menampilkan tabel penuh 8 kolom.
+- **Tablet (`640px–1023px`)**: `SummaryCards` merender kartu utama *Total Omzet Arsip* selebar 2 kolom (`sm:col-span-2`) di atas kartu *Sudah Lunas* dan *Tertagih* agar simetris.
+- **Mobile (`<640px`)**: `TransactionTable` otomatis beralih dari tabel 8 kolom ke **Mobile Audit Card View (`sm:hidden`)** sehingga status bayar dan tombol **Lihat Rincian / Kloning Nota** dapat diakses langsung tanpa geser horizontal.

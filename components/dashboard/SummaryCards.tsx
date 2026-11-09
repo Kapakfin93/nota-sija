@@ -23,7 +23,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {/* Card 1: Total Omzet */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs relative overflow-hidden sm:col-span-2 lg:col-span-1">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
             Total Omzet Arsip

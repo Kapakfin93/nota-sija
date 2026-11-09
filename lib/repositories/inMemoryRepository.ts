@@ -15,14 +15,27 @@ export class InMemoryRepository implements ISheetRepository {
   async ambilSemuaTransaksi(bulan?: string): Promise<Transaksi[]> {
     const semua = Array.from(this.data.values());
     if (bulan) {
-      // Filter berdasar format tanggal dokumen "DD/MM/YY"
+      // Filter berdasar format tanggal dokumen "DD/MM/YY" terhadap bulan "MM_YY" atau "MM"
       return semua.filter(t => {
-        const parts = t.tanggalDokumen.split('/');
-        // parts[1] adalah bulan (MM)
-        return parts.length >= 2 && parts[1] === bulan;
+        const parts = t.tanggalDokumen.split("/");
+        if (parts.length < 2) return false;
+        const mmYy = parts.length >= 3 ? `${parts[1]}_${parts[2]}` : parts[1];
+        return mmYy === bulan || parts[1] === bulan;
       });
     }
     return semua;
+  }
+
+  async ambilDaftarBulan(): Promise<string[]> {
+    const semua = Array.from(this.data.values());
+    const months = new Set<string>();
+    for (const t of semua) {
+      const parts = (t.tanggalDokumen || "").split("/");
+      if (parts.length >= 3) {
+        months.add(`${parts[1]}_${parts[2]}`);
+      }
+    }
+    return Array.from(months).sort().reverse();
   }
 
   async updateStatus(noDokumen: string, status: Transaksi["status"]): Promise<void> {
